@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html>
+  <head>
+      <meta charset="utf-8">
+      <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+      <title></title>
+      <meta name="viewport" content="width=device-width">
+
+      <!-- CSS -->
+      <link rel="stylesheet" href="/css/style.css">
+      <link rel="stylesheet" href="/css/print.css">
+      <link href='http://fonts.googleapis.com/css?family=Italianno' rel='stylesheet' type='text/css'>
+
+      <!-- Fonts -->
+      <link href='http://fonts.googleapis.com/css?family=Lato:100,200,300,400' rel='stylesheet' type='text/css'>
+      <link rel="stylesheet" href="/css/font-awesome-4.0.3/css/font-awesome.min.css">
+
+      <link rel="shortcut icon" href="/images/favicon.ico" type="image/x-icon">
+      <script src="/js/jquery.js"></script>
+      <!--[if lt IE 9]>
+        <script src="/js/vendor/modernizr.js"></script>
+      <![endif]-->
+
+  </head>
+  <body>
+    <script>
+      (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+      (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+      m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+      })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+
+      ga('create', 'UA-42527632-1', 'samselikoff.com');
+      ga('send', 'pageview');
+
+    </script>
+        
+    <div class="">
+  <div class="site">
+
+    <nav id="main-nav" role="banner">
+      <div id="inner-header" class="wrap clearfix">
+        <div id="header-intro">
+          <p class="title"><a href="/">Sam Selikoff</a></p>
+          <div class="byline thin subtitle subtle">
+            <p class="inline">Full-stack web developer</p>
+            <p class="inline">with a background in economics</p>
+          </div>
+        </div>
+
+        <nav class="social">
+          <ul>
+            <li><a href="https://github.com/samselikoff" target="_blank">
+              <img src="/images/icons/github.png" width="22" height="22"></img>
+            </a></li>
+            <li><a href="https://twitter.com/samselikoff" target="_blank">
+              <img src="/images/icons/twitter.png" width="22" height="22"></img>
+            </a></li>
+            <li><a href="http://www.linkedin.com/in/samselikoff" target="_blank">
+              <img src="/images/icons/linkedin.png" width="22" height="22"></img>
+            </a></li>
+            <li><a href="https://www.facebook.com/sam.selikoff" target="_blank">
+              <img src="/images/icons/facebook2.png" width="22" height="22">
+            </li>
+          </ul>
+        </nav>
+
+        <nav class="main-nav desktop visible-tablet" role="navigation">
+          <ul>
+            <li ><a href="/projects">Projects</a></li>
+            <li ><a href="/writing">Writing</a></li>
+            <li ><a href="/blog">Blog</a></li>
+            <li ><a href="/resume">Resume</a></li>
+            <li ><a href="/about">About</a></li>
+          </ul>         
+        </nav>
+
+        <nav class="main-nav mobile visible-phone" role="navigation">
+          <p class="thin subtitle text-center"><a href="/about/index.html">Learn more about me</a>, or explore my work:</p>
+          <div class="row">
+            <a  href="/projects">Projects</a>
+            <a  href="/writing">Writing</a>
+          </div>
+          <div class="row">
+            <!-- <a  href="/portfolio">Portfolio</a> -->
+            <a  href="/blog">Blog</a>
+            <a  href="/resume">Resume</a>
+          </div>
+        </nav>
+      </div>
+    </nav>
+
+    <div id="" class="content wrap">
+          
+      <h1>Ember and D3: Building a simple dashboard</h1>
+
+<h1>Models</h1>
+
+<p>Now we&#39;re ready to tackle the datepicker. We want each month in our app to have a URL. So, visiting /Jan-2013 will pull up charts corresponding to January 2013. In this sense, months in our app are really resources, something like a &quot;monthly report&quot; resource. (This may seem strange at first, since dates or times are often represented as filters or queries on other resources; but this is another approach).</p>
+
+<p>So, since &quot;monthly report&quot; will be a <em>noun</em> in our app that has a URL, we&#39;ll want to create a monthly report resource (read more about resources <a href="http://emberjs.com/guides/routing/defining-your-routes/#toc_resources">here</a>):</p>
+<div class="highlight"><pre><code class="js language-js" data-lang="js"><span class="nx">App</span><span class="p">.</span><span class="nx">Router</span><span class="p">.</span><span class="nx">map</span><span class="p">(</span><span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
+    <span class="k">this</span><span class="p">.</span><span class="nx">resource</span><span class="p">(</span><span class="s1">&#39;monthlyReport&#39;</span><span class="p">,</span> <span class="p">{</span> <span class="nx">path</span><span class="o">:</span> <span class="s1">&#39;/:monthlyReport_id&#39;</span> <span class="p">});</span>
+<span class="p">});</span>
+</code></pre></div>
+<p>The &#39;:monthlyReport_id&#39; portion corresponds to the part of the URL that will be changing: <code>/Jan-2013</code>, <code>/Dec-2010</code>, and so on. We&#39;ll use these when it comes time to actually fetch data from the server.</p>
+
+<p>We also need a model that represents our &quot;monthly report&quot;. Here&#39;s how we do it:</p>
+<div class="highlight"><pre><code class="js language-js" data-lang="js"><span class="nx">App</span><span class="p">.</span><span class="nx">MonthlyReport</span> <span class="o">=</span> <span class="nx">DS</span><span class="p">.</span><span class="nx">Model</span><span class="p">.</span><span class="nx">extend</span><span class="p">({</span>
+  <span class="nx">companies</span><span class="o">:</span> <span class="nx">DS</span><span class="p">.</span><span class="nx">hasMany</span><span class="p">(</span><span class="s1">&#39;company&#39;</span><span class="p">,</span> <span class="p">{</span> <span class="nx">async</span><span class="o">:</span> <span class="kc">true</span> <span class="p">}),</span>
+
+  <span class="nx">date</span><span class="o">:</span> <span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
+    <span class="k">return</span> <span class="nx">moment</span><span class="p">(</span> <span class="k">this</span><span class="p">.</span><span class="nx">get</span><span class="p">(</span><span class="s1">&#39;id&#39;</span><span class="p">),</span> <span class="s1">&#39;MMM-YYYY&#39;</span> <span class="p">);</span>
+  <span class="p">}.</span><span class="nx">property</span><span class="p">(</span><span class="s1">&#39;model&#39;</span><span class="p">),</span>
+<span class="p">});</span>
+</code></pre></div>
+<p>We define a <code>companies</code> property, since our report will be a report of several properties. We also define a <code>date</code> property, which is a <code>moment</code> object. <a href="http://momentjs.com/">Moment.js</a> is a library we&#39;re using to help with date formatting. We add the property here because we figure we&#39;ll want to do various things with the date, and having a moment object to work with is much easier than the plan id of &quot;Jan-2013&quot;.</p>
+
+<h2>Models</h2>
+
+<p>Now, we&#39;ve told our monthly report it has many companies - so let&#39;s define a Company model:</p>
+<div class="highlight"><pre><code class="js language-js" data-lang="js"><span class="nx">App</span><span class="p">.</span><span class="nx">Company</span> <span class="o">=</span> <span class="nx">DS</span><span class="p">.</span><span class="nx">Model</span><span class="p">.</span><span class="nx">extend</span><span class="p">({</span>
+  <span class="nx">monthlyReport</span><span class="o">:</span> <span class="nx">DS</span><span class="p">.</span><span class="nx">belongsTo</span><span class="p">(</span><span class="s1">&#39;monthly-report&#39;</span><span class="p">),</span>
+
+  <span class="nx">name</span><span class="o">:</span> <span class="nx">DS</span><span class="p">.</span><span class="nx">attr</span><span class="p">(</span><span class="s1">&#39;string&#39;</span><span class="p">),</span>
+
+  <span class="nx">newContracts</span><span class="o">:</span> <span class="nx">DS</span><span class="p">.</span><span class="nx">attr</span><span class="p">(</span><span class="s1">&#39;number&#39;</span><span class="p">),</span>
+  <span class="nx">feeIncreases</span><span class="o">:</span> <span class="nx">DS</span><span class="p">.</span><span class="nx">attr</span><span class="p">(</span><span class="s1">&#39;number&#39;</span><span class="p">),</span>
+  <span class="nx">attritions</span><span class="o">:</span> <span class="nx">DS</span><span class="p">.</span><span class="nx">attr</span><span class="p">(</span><span class="s1">&#39;number&#39;</span><span class="p">),</span>
+<span class="p">});</span>
+</code></pre></div>
+<p>The company belongs to a monthly report, has a name (&quot;Acme, Inc.&quot;), and has three categories of cash flow: new contracts, fee increases, and attritions.</p>
+
+<h2>Fixtures</h2>
+
+<p>Great! Now we&#39;re ready to work with some data. Instead of making real server calls - which would involve whipping up some fake back-end - we&#39;ll use <a href="http://emberjs.com/guides/getting-started/using-fixtures/">ember-data&#39;s FixtureAdapter</a>, and populate our &quot;server&quot; with an array of <code>monthly-report</code> and <code>company</code> objects.</p>
+
+<p>First, tell our app we&#39;re using the fixture adapter:</p>
+<div class="highlight"><pre><code class="js language-js" data-lang="js"><span class="nx">App</span><span class="p">.</span><span class="nx">ApplicationAdapter</span> <span class="o">=</span> <span class="nx">DS</span><span class="p">.</span><span class="nx">FixtureAdapter</span><span class="p">.</span><span class="nx">extend</span><span class="p">({</span> <span class="nx">latency</span><span class="o">:</span> <span class="mi">400</span> <span class="p">});</span>
+</code></pre></div>
+<p>As its name suggests, <code>latency</code> is a handy option that simulates a client-server delay. It helps to replicate a more realistic user experience as we build our app.</p>
+
+<p>Now, we just need to provide our adapter with some fixtures - some test data. Fixtures are just arrays of objects. So, we&#39;ll make some random data, create new monthlyReport and company objects with the data, and add them to the <code>FIXTURES</code> property of our objects:</p>
+<div class="highlight"><pre><code class="js language-js" data-lang="js"><span class="kd">var</span> <span class="nx">months</span> <span class="o">=</span> <span class="p">[],</span>
+    <span class="nx">companies</span> <span class="o">=</span> <span class="p">[];</span>
+
+<span class="k">for</span> <span class="p">(</span><span class="kd">var</span> <span class="nx">year</span> <span class="o">=</span> <span class="mi">1990</span><span class="p">;</span> <span class="nx">year</span> <span class="o">&lt;=</span> <span class="mi">2014</span><span class="p">;</span> <span class="nx">year</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
+  <span class="k">for</span> <span class="p">(</span><span class="kd">var</span> <span class="nx">month</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="nx">month</span> <span class="o">&lt;</span> <span class="mi">12</span><span class="p">;</span> <span class="nx">month</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
+    <span class="nx">months</span><span class="p">.</span><span class="nx">push</span><span class="p">({</span>
+      <span class="nx">id</span><span class="o">:</span> <span class="nx">moment</span><span class="p">([</span><span class="nx">year</span><span class="p">,</span> <span class="nx">month</span><span class="p">]).</span><span class="nx">format</span><span class="p">(</span><span class="s1">&#39;MMM-YYYY&#39;</span><span class="p">),</span>
+      <span class="nx">companies</span><span class="o">:</span> <span class="p">[</span><span class="nx">year</span><span class="o">+</span><span class="s1">&#39;&#39;</span><span class="o">+</span><span class="nx">month</span><span class="o">+</span><span class="s1">&#39;1&#39;</span><span class="p">,</span> <span class="nx">year</span><span class="o">+</span><span class="s1">&#39;&#39;</span><span class="o">+</span><span class="nx">month</span><span class="o">+</span><span class="s1">&#39;2&#39;</span><span class="p">,</span> <span class="nx">year</span><span class="o">+</span><span class="s1">&#39;&#39;</span><span class="o">+</span><span class="nx">month</span><span class="o">+</span><span class="s1">&#39;3&#39;</span><span class="p">,</span> <span class="nx">year</span><span class="o">+</span><span class="s1">&#39;&#39;</span><span class="o">+</span><span class="nx">month</span><span class="o">+</span><span class="s1">&#39;4&#39;</span><span class="p">,</span> <span class="nx">year</span><span class="o">+</span><span class="s1">&#39;&#39;</span><span class="o">+</span><span class="nx">month</span><span class="o">+</span><span class="s1">&#39;5&#39;</span><span class="p">]</span>
+    <span class="p">});</span>
+
+    <span class="nx">companies</span><span class="p">.</span><span class="nx">push</span><span class="p">({</span>
+      <span class="nx">id</span><span class="o">:</span> <span class="nx">year</span><span class="o">+</span><span class="s1">&#39;&#39;</span><span class="o">+</span><span class="nx">month</span><span class="o">+</span><span class="s1">&#39;1&#39;</span><span class="p">,</span>
+      <span class="nx">name</span><span class="o">:</span> <span class="s1">&#39;Acme Inc&#39;</span><span class="p">,</span>
+      <span class="nx">newContracts</span><span class="o">:</span> <span class="nb">Math</span><span class="p">.</span><span class="nx">floor</span><span class="p">(</span><span class="nb">Math</span><span class="p">.</span><span class="nx">random</span><span class="p">()</span><span class="o">*</span><span class="mi">1000</span><span class="p">),</span>
+      <span class="nx">feeIncreases</span><span class="o">:</span> <span class="nb">Math</span><span class="p">.</span><span class="nx">floor</span><span class="p">(</span><span class="nb">Math</span><span class="p">.</span><span class="nx">random</span><span class="p">()</span><span class="o">*</span><span class="mi">1000</span><span class="p">),</span>
+      <span class="nx">attritions</span><span class="o">:</span> <span class="nb">Math</span><span class="p">.</span><span class="nx">floor</span><span class="p">(</span><span class="nb">Math</span><span class="p">.</span><span class="nx">random</span><span class="p">()</span><span class="o">*</span><span class="mi">1000</span><span class="p">),</span>
+    <span class="p">});</span>
+    <span class="nx">companies</span><span class="p">.</span><span class="nx">push</span><span class="p">({</span>
+      <span class="nx">id</span><span class="o">:</span> <span class="nx">year</span><span class="o">+</span><span class="s1">&#39;&#39;</span><span class="o">+</span><span class="nx">month</span><span class="o">+</span><span class="s1">&#39;2&#39;</span><span class="p">,</span>
+      <span class="nx">name</span><span class="o">:</span> <span class="s1">&#39;LexCorp&#39;</span><span class="p">,</span>
+      <span class="nx">newContracts</span><span class="o">:</span> <span class="nb">Math</span><span class="p">.</span><span class="nx">floor</span><span class="p">(</span><span class="nb">Math</span><span class="p">.</span><span class="nx">random</span><span class="p">()</span><span class="o">*</span><span class="mi">1000</span><span class="p">),</span>
+      <span class="nx">feeIncreases</span><span class="o">:</span> <span class="nb">Math</span><span class="p">.</span><span class="nx">floor</span><span class="p">(</span><span class="nb">Math</span><span class="p">.</span><span class="nx">random</span><span class="p">()</span><span class="o">*</span><span class="mi">1000</span><span class="p">),</span>
+      <span class="nx">attritions</span><span class="o">:</span> <span class="nb">Math</span><span class="p">.</span><span class="nx">floor</span><span class="p">(</span><span class="nb">Math</span><span class="p">.</span><span class="nx">random</span><span class="p">()</span><span class="o">*</span><span class="mi">1000</span><span class="p">),</span>
+    <span class="p">});</span>
+    <span class="nx">companies</span><span class="p">.</span><span class="nx">push</span><span class="p">({</span>
+      <span class="nx">id</span><span class="o">:</span> <span class="nx">year</span><span class="o">+</span><span class="s1">&#39;&#39;</span><span class="o">+</span><span class="nx">month</span><span class="o">+</span><span class="s1">&#39;3&#39;</span><span class="p">,</span>
+      <span class="nx">name</span><span class="o">:</span> <span class="s1">&#39;Stark Industries&#39;</span><span class="p">,</span>
+      <span class="nx">newContracts</span><span class="o">:</span> <span class="nb">Math</span><span class="p">.</span><span class="nx">floor</span><span class="p">(</span><span class="nb">Math</span><span class="p">.</span><span class="nx">random</span><span class="p">()</span><span class="o">*</span><span class="mi">1000</span><span class="p">),</span>
+      <span class="nx">feeIncreases</span><span class="o">:</span> <span class="nb">Math</span><span class="p">.</span><span class="nx">floor</span><span class="p">(</span><span class="nb">Math</span><span class="p">.</span><span class="nx">random</span><span class="p">()</span><span class="o">*</span><span class="mi">1000</span><span class="p">),</span>
+      <span class="nx">attritions</span><span class="o">:</span> <span class="nb">Math</span><span class="p">.</span><span class="nx">floor</span><span class="p">(</span><span class="nb">Math</span><span class="p">.</span><span class="nx">random</span><span class="p">()</span><span class="o">*</span><span class="mi">1000</span><span class="p">),</span>
+    <span class="p">});</span>
+    <span class="nx">companies</span><span class="p">.</span><span class="nx">push</span><span class="p">({</span>
+      <span class="nx">id</span><span class="o">:</span> <span class="nx">year</span><span class="o">+</span><span class="s1">&#39;&#39;</span><span class="o">+</span><span class="nx">month</span><span class="o">+</span><span class="s1">&#39;4&#39;</span><span class="p">,</span>
+      <span class="nx">name</span><span class="o">:</span> <span class="s1">&#39;Wayne Enterprises&#39;</span><span class="p">,</span>
+      <span class="nx">newContracts</span><span class="o">:</span> <span class="nb">Math</span><span class="p">.</span><span class="nx">floor</span><span class="p">(</span><span class="nb">Math</span><span class="p">.</span><span class="nx">random</span><span class="p">()</span><span class="o">*</span><span class="mi">1000</span><span class="p">),</span>
+      <span class="nx">feeIncreases</span><span class="o">:</span> <span class="nb">Math</span><span class="p">.</span><span class="nx">floor</span><span class="p">(</span><span class="nb">Math</span><span class="p">.</span><span class="nx">random</span><span class="p">()</span><span class="o">*</span><span class="mi">1000</span><span class="p">),</span>
+      <span class="nx">attritions</span><span class="o">:</span> <span class="nb">Math</span><span class="p">.</span><span class="nx">floor</span><span class="p">(</span><span class="nb">Math</span><span class="p">.</span><span class="nx">random</span><span class="p">()</span><span class="o">*</span><span class="mi">1000</span><span class="p">),</span>
+    <span class="p">});</span>
+    <span class="nx">companies</span><span class="p">.</span><span class="nx">push</span><span class="p">({</span>
+      <span class="nx">id</span><span class="o">:</span> <span class="nx">year</span><span class="o">+</span><span class="s1">&#39;&#39;</span><span class="o">+</span><span class="nx">month</span><span class="o">+</span><span class="s1">&#39;5&#39;</span><span class="p">,</span>
+      <span class="nx">name</span><span class="o">:</span> <span class="s1">&#39;Dunder Mifflin&#39;</span><span class="p">,</span>
+      <span class="nx">newContracts</span><span class="o">:</span> <span class="nb">Math</span><span class="p">.</span><span class="nx">floor</span><span class="p">(</span><span class="nb">Math</span><span class="p">.</span><span class="nx">random</span><span class="p">()</span><span class="o">*</span><span class="mi">1000</span><span class="p">),</span>
+      <span class="nx">feeIncreases</span><span class="o">:</span> <span class="nb">Math</span><span class="p">.</span><span class="nx">floor</span><span class="p">(</span><span class="nb">Math</span><span class="p">.</span><span class="nx">random</span><span class="p">()</span><span class="o">*</span><span class="mi">1000</span><span class="p">),</span>
+      <span class="nx">attritions</span><span class="o">:</span> <span class="nb">Math</span><span class="p">.</span><span class="nx">floor</span><span class="p">(</span><span class="nb">Math</span><span class="p">.</span><span class="nx">random</span><span class="p">()</span><span class="o">*</span><span class="mi">1000</span><span class="p">),</span>
+    <span class="p">});</span>
+  <span class="p">}</span>
+<span class="p">}</span>
+
+<span class="nx">App</span><span class="p">.</span><span class="nx">Month</span><span class="p">.</span><span class="nx">FIXTURES</span> <span class="o">=</span> <span class="nx">months</span><span class="p">;</span>
+<span class="nx">App</span><span class="p">.</span><span class="nx">Company</span><span class="p">.</span><span class="nx">FIXTURES</span> <span class="o">=</span> <span class="nx">companies</span><span class="p">;</span>
+</code></pre></div>
+<p>Now our models are loaded up and ready to go.</p>
+
+
+    </div>
+
+  <div class="container">
+<div class="site">
+
+  </body>
+</html>

@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html>
+  <head>
+      <meta charset="utf-8">
+      <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+      <title></title>
+      <meta name="viewport" content="width=device-width">
+
+      <!-- CSS -->
+      <link rel="stylesheet" href="/css/style.css">
+      <link rel="stylesheet" href="/css/print.css">
+      <link href='http://fonts.googleapis.com/css?family=Italianno' rel='stylesheet' type='text/css'>
+
+      <!-- Fonts -->
+      <link href='http://fonts.googleapis.com/css?family=Lato:100,200,300,400' rel='stylesheet' type='text/css'>
+      <link rel="stylesheet" href="/css/font-awesome-4.0.3/css/font-awesome.min.css">
+
+      <link rel="shortcut icon" href="/images/favicon.ico" type="image/x-icon">
+      <script src="/js/jquery.js"></script>
+      <!--[if lt IE 9]>
+        <script src="/js/vendor/modernizr.js"></script>
+      <![endif]-->
+
+  </head>
+  <body>
+    <script>
+      (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+      (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+      m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+      })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+
+      ga('create', 'UA-42527632-1', 'samselikoff.com');
+      ga('send', 'pageview');
+
+    </script>
+        
+    <div class="">
+  <div class="site">
+
+    <nav id="main-nav" role="banner">
+      <div id="inner-header" class="wrap clearfix">
+        <div id="header-intro">
+          <p class="title"><a href="/">Sam Selikoff</a></p>
+          <div class="byline thin subtitle subtle">
+            <p class="inline">Full-stack web developer</p>
+            <p class="inline">with a background in economics</p>
+          </div>
+        </div>
+
+        <nav class="social">
+          <ul>
+            <li><a href="https://github.com/samselikoff" target="_blank">
+              <img src="/images/icons/github.png" width="22" height="22"></img>
+            </a></li>
+            <li><a href="https://twitter.com/samselikoff" target="_blank">
+              <img src="/images/icons/twitter.png" width="22" height="22"></img>
+            </a></li>
+            <li><a href="http://www.linkedin.com/in/samselikoff" target="_blank">
+              <img src="/images/icons/linkedin.png" width="22" height="22"></img>
+            </a></li>
+            <li><a href="https://www.facebook.com/sam.selikoff" target="_blank">
+              <img src="/images/icons/facebook2.png" width="22" height="22">
+            </li>
+          </ul>
+        </nav>
+
+        <nav class="main-nav desktop visible-tablet" role="navigation">
+          <ul>
+            <li ><a href="/projects">Projects</a></li>
+            <li ><a href="/writing">Writing</a></li>
+            <li ><a href="/blog">Blog</a></li>
+            <li ><a href="/resume">Resume</a></li>
+            <li ><a href="/about">About</a></li>
+          </ul>         
+        </nav>
+
+        <nav class="main-nav mobile visible-phone" role="navigation">
+          <p class="thin subtitle text-center"><a href="/about/index.html">Learn more about me</a>, or explore my work:</p>
+          <div class="row">
+            <a  href="/projects">Projects</a>
+            <a  href="/writing">Writing</a>
+          </div>
+          <div class="row">
+            <!-- <a  href="/portfolio">Portfolio</a> -->
+            <a  href="/blog">Blog</a>
+            <a  href="/resume">Resume</a>
+          </div>
+        </nav>
+      </div>
+    </nav>
+
+    <div id="" class="content wrap">
+          
+      <h2>The datepicker, our first Ember component</h2>
+
+<p>We&#39;ll be using an <a href="http://emberjs.com/guides/components/">Ember component</a> for our datepicker. Think of a component in Ember as a reusable chunk of your GUI - a chart, a datepicker, whatever. The component doesn&#39;t know about its surroundings, such as where it&#39;s rendered, but it can transmit data back and forth to the Ember app it belongs to. This makes it a perfect candidate for our datepicker.</p>
+
+<p>The first step in building a component is to think about the <em>contract</em> it will offer to its presenter. In our case, our datepicker component needs:</p>
+
+<ol>
+<li>To know the current month</li>
+<li>To notify the app when its month changes</li>
+</ol>
+
+<p>In this app, we don&#39;t need to worry about changing days, so we&#39;ll stick to a monthly datepicker. Let&#39;s dive right in. Components in Ember must be named with two or more words(), so we&#39;ll use &quot;monthly datepicker&quot;:</p>
+<div class="highlight"><pre><code class="js language-js" data-lang="js"><span class="nx">App</span><span class="p">.</span><span class="nx">MonthlyDatepickerComponent</span> <span class="o">=</span> <span class="nx">Ember</span><span class="p">.</span><span class="nx">Component</span><span class="p">.</span><span class="nx">extend</span><span class="p">({</span>
+<span class="p">});</span>
+</code></pre></div>
+<p>When it comes to rendering the componetn in a Handlebars template, When the component is loaded up and ready to go, we need to draw the datepicker itself. Recall that we&#39;ve included a datepicker library [] - we&#39;re not writing a datepicker ourselves here; rather, we&#39;re wrapping an existing library&#39;s object in an Ember componet to facilitate reuse and communication in our Ember app (as well as other apps we (or others) may develop down the road)j.</p>
+
+<p>The library we&#39;re using provides the following simple API for initializing a datepicker on a jQuery selection: <code>.datepicker(options)</code>. So, once our component&#39;s root element has been inserted into the DOM, we&#39;ll initialize a new datepicker. Ember gives us easy access to the jQuery-selected root element via <code>this.$()</code>, so our code looks like this:</p>
+<div class="highlight"><pre><code class="js language-js" data-lang="js"><span class="nx">App</span><span class="p">.</span><span class="nx">MonthlyDatepickerComponent</span> <span class="o">=</span> <span class="nx">Ember</span><span class="p">.</span><span class="nx">Component</span><span class="p">.</span><span class="nx">extend</span><span class="p">({</span>
+
+  <span class="nx">didInsertElement</span><span class="o">:</span> <span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
+    <span class="k">this</span><span class="p">.</span><span class="nx">$</span><span class="p">().</span><span class="nx">datepicker</span><span class="p">({</span><span class="nx">format</span><span class="o">:</span> <span class="s1">&#39;M-yyyy&#39;</span><span class="p">,</span> <span class="nx">minViewMode</span><span class="o">:</span> <span class="s1">&#39;months&#39;</span><span class="p">});</span>
+  <span class="p">}</span>
+
+<span class="p">});</span>
+</code></pre></div>
+<p>Ok, so now our component will render a datepicker to its root element. Now let&#39;s think about the contract. First, we need to notify the Ember app if the date changes. The datepicker library we&#39;re using exposes a hook for this very action: <code>on.(&#39;changeDate&#39;, handler)</code>. So, let&#39;s add the handler to our datepicker:</p>
+<div class="highlight"><pre><code class="diff language-diff" data-lang="diff">App.MonthlyDatepickerComponent = Ember.Component.extend({
+
+  didInsertElement: function() {
+<span class="gi">+   var _this = this;</span>
+    this.$().datepicker({format: &#39;M-yyyy&#39;, minViewMode: &#39;months&#39;})
+<span class="gi">+     .on(&#39;changeDate&#39;, function(e) {</span>
+<span class="gi">+       this.sendAction(&#39;action&#39;, e.format());</span>
+<span class="gi">+     });</span>
+  }
+
+});
+</code></pre></div>
+<p>Now our component will emit an action whenever its date changes, which we&#39;ll be able to handle in a controller or router, just like we would any other action from a view or helper. The first parameter &quot;action&quot; means this is primary action of our component. The second parameter is which date was selected.</p>
+
+<p><aside>
+Read more about actions in components <a href="http://emberjs.com/guides/components/sending-actions-from-components-to-your-application/">here</a>.
+</aside></p>
+
+<p>We&#39;ll see how to actually handle the action soon. First, let&#39;s finish the component. The only other piece we need is to tie our datepicker to the current month our application has selected.</p>
+
+<p>Now, if we think back to our application mockup, it may seem that the <code>changeDate</code> action is all we really need. After all, the datepicker is going to be the primary driver of our user&#39;s interaction. He&#39;ll select a new month, and see the report show up in the main panel. So why do we need to tell our datepicker what the selected month is? Won&#39;t it already know?</p>
+
+<p>When building Ember apps, it&#39;s important to always think in terms of two-way data binding. In this case, that means we need to account for some other interaction that would change the selected month. Even though right now we may not plan on having another part of our GUI change the date, it&#39;s always a possibilty. So the best practice is to ensure two-way binding with our component and its data. That way, if we (or a team member) ever changes the selected month anywhere in the app, we know our datepicker component will stay up to date and accurately represent the new date.</p>
+
+<p>With that being said, let&#39;s add an <code>update</code> method to our datepicker:</p>
+<div class="highlight"><pre><code class="diff language-diff" data-lang="diff">App.MonthlyDatepickerComponent = Ember.Component.extend({
+
+  didInsertElement: function() {
+    var _this = this;
+    this.$().datepicker({format: &#39;M-yyyy&#39;, minViewMode: &#39;months&#39;})
+      .on(&#39;changeDate&#39;, function(e) {
+        this.sendAction(&#39;action&#39;, e.format());
+      });
+
+<span class="gi">+   this.update(); </span>
+  },
+
+<span class="gi">+ update: function() {</span>
+<span class="gi">+   if (this.get(&#39;month&#39;)) {</span>
+<span class="gi">+     this.$().datepicker(&#39;update&#39;, this.get(&#39;month&#39;).toDate());</span>
+<span class="gi">+   } else {</span>
+<span class="gi">+     this.$(&#39;.month.active&#39;).removeClass(&#39;active&#39;);</span>
+<span class="gi">+   }</span>
+<span class="gi">+ }.observes(&#39;month&#39;)</span>
+}
+
+});
+</code></pre></div>
+<p>To understand what&#39;s going on here, first let&#39;s consider the possible values the selected month will be: it will either be a particular month, or it will be null. If it&#39;s a particular month (first branch of the <code>if</code> statement), we need to update the datepicker. <code>.datepicker(&#39;update&#39;, month)</code> is the API of the library we&#39;re using, so we just call that, passing in a Javascript date object as the new month. Note that <code>this.get(&#39;month&#39;)</code> is getting a property called <code>month</code> on the component itself. We haven&#39;t actually defined or set this property anywhere yet - we&#39;ll get to that shortly.</p>
+
+<p>On the other hand, if the current month is undefined (second branch of the conditional), we clear the active month from our datepicker&#39;s UI.</p>
+
+<p>Next, we add <code>.observes(&#39;month&#39;)</code>. This tells Ember that this function should be invoked each time the variable <code>month</code> changes. Writing observers in this declarative style saves us from having to explicitly attach a handler to the value changed event of the <code>month</code> variable. This style of coding is very much embraced by Ember.js.</p>
+
+<p>Finally, we add a call to <code>this.update()</code> within the <code>didInsertElement</code> hook, so that on initialization our datepicker will be up to date with whatever the initial value of <code>month</code> is.</p>
+
+<p>That&#39;s it - our first component!</p>
+
+<h2>Using our datepicker</h2>
+
+<h3>Giving it data</h3>
+
+<p>To actually use our component, we render it in a Handlebars template, like this:</p>
+<div class="highlight"><pre><code class="js language-js" data-lang="js"><span class="p">{{</span><span class="nx">monthly</span><span class="o">-</span><span class="nx">datepicker</span> <span class="p">}}</span>
+</code></pre></div>
+<p>But our component doesn&#39;t exist in a vaccuum - it interacts with our application. So, we need to feed it the data it needs to communicate. We can do it right in the Handlebars template:</p>
+<div class="highlight"><pre><code class="js language-js" data-lang="js"><span class="p">{{</span><span class="nx">monthly</span><span class="o">-</span><span class="nx">datepicker</span>
+  <span class="nx">month</span><span class="o">=</span><span class="nx">controller</span><span class="p">.</span><span class="nx">controllers</span><span class="p">.</span><span class="nx">monthlyReport</span><span class="p">.</span><span class="nx">date</span>
+  <span class="nx">action</span><span class="o">=</span><span class="s2">&quot;changeMonth&quot;</span><span class="p">}}</span>
+</code></pre></div>
+<p>Here, we bind the month property on our component to the date property on our <code>MonthlyReportController</code>. When we declared the <code>monthlyReport</code> resource in our router, we get an associated <code>MonthlyReportController</code> which will take the current resource, and pass it to the template. Also, when we defined the <code>monthlyReport</code> model, we created a <code>date</code> property on it, which was a moment.js object. So, that&#39;s what&#39;s happening here: we&#39;re binding the month property on our component the date property of the active <code>monthlyReport</code> model on the <code>MonthlyReportController</code>.</p>
+
+<p>But, there&#39;s one more thing we have to do. Recall our application template:</p>
+<div class="highlight"><pre><code class="html language-html" data-lang="html"><span class="nt">&lt;script </span><span class="na">type=</span><span class="s">&quot;text/x-handlebars&quot;</span> <span class="na">data-template-name=</span><span class="s">&quot;application&quot;</span><span class="nt">&gt;</span>
+  <span class="o">&lt;</span><span class="nx">header</span> <span class="kr">class</span><span class="o">=</span><span class="s2">&quot;title&quot;</span><span class="o">&gt;</span>
+    <span class="o">&lt;</span><span class="nx">h1</span><span class="o">&gt;</span><span class="nx">Ember</span> <span class="nx">and</span> <span class="nx">D3</span><span class="o">&lt;</span><span class="err">/h1&gt;</span>
+    <span class="o">&lt;</span><span class="nx">h2</span><span class="o">&gt;</span><span class="nx">Scaffolding</span><span class="o">&lt;</span><span class="err">/h2&gt;</span>
+  <span class="o">&lt;</span><span class="err">/header&gt;</span>
+
+  <span class="o">&lt;</span><span class="nx">div</span> <span class="kr">class</span><span class="o">=</span><span class="s2">&quot;content&quot;</span><span class="o">&gt;</span> 
+    <span class="o">&lt;</span><span class="nx">div</span> <span class="nx">id</span><span class="o">=</span><span class="s2">&quot;left-panel&quot;</span><span class="o">&gt;</span>
+      <span class="o">&lt;</span><span class="nx">h3</span><span class="o">&gt;</span><span class="nx">The</span> <span class="nx">datepicker</span><span class="o">&lt;</span><span class="err">/h3&gt;</span>
+    <span class="o">&lt;</span><span class="err">/div&gt;</span>
+
+    <span class="o">&lt;</span><span class="nx">div</span> <span class="nx">id</span><span class="o">=</span><span class="s2">&quot;center-panel&quot;</span><span class="o">&gt;</span>
+      <span class="p">{{</span><span class="nx">outlet</span><span class="p">}}</span>
+    <span class="o">&lt;</span><span class="err">/div&gt;</span>
+  <span class="o">&lt;</span><span class="err">/div&gt;</span>
+<span class="nt">&lt;/script&gt;</span>
+</code></pre></div>
+<p>The datepicker is actually rendered in the application template, while the actual monthly report (the charts) will be rendered to the center panel. This means that the <em>context</em> of the datepicker is the <code>ApplicationController</code>. Since we want to bind something being rendered by the <code>ApplicationController</code> to data that lives on the <code>MonthlyReportController</code>, we need to teach our <code>ApplicationController</code> where the <code>MonthlyReportController</code> lives. We do it like this:</p>
+<div class="highlight"><pre><code class="js language-js" data-lang="js"><span class="nx">App</span><span class="p">.</span><span class="nx">ApplicationController</span> <span class="o">=</span> <span class="nx">Ember</span><span class="p">.</span><span class="nx">Controller</span><span class="p">.</span><span class="nx">extend</span><span class="p">({</span>
+    <span class="nx">needs</span><span class="o">:</span> <span class="p">[</span><span class="s1">&#39;monthlyReport&#39;</span><span class="p">]</span>
+<span class="p">});</span>
+</code></pre></div>
+<p><aside>
+Templates in Ember are rendered within a <em>context</em>, which simply refers to the controller that owns the view or component being rendered. Read more about template context <a href="http://emberjs.com/guides/controllers/#toc_a-note-on-coupling">here</a>.
+</aside></p>
+
+<p>Now within our application template, we can access any data on the monthly report controller like this: <code>controller.controllers.monthlyReport.[data]</code>. This is how we bind our datepicker to our report model.</p>
+
+<h3>Handling the action</h3>
+
+<p>We built our component to emit an action whenever the user changes the date - but what actual action is emitted? We provide a name for our component&#39;s action when we render it in a template. We do this for reusability: we can now use this same component in another application and give the action a different name, one that&#39;s meaningful to that specific app. Here, we&#39;ve given that action the name <code>changeMonth</code>, but it could have been anything we want.</p>
+
+<p>So, we now have an action that&#39;s emitted whenever the user clicks a new month. How do we handle this action?</p>
+
+<p>All actions in Ember must be handled. The first object to receive an action is the sending template&#39;s controller. If the action is not handled there, it bubbles up to the active route, and then finally to the application route. </p>
+
+<p>We&#39;re going to handle the action directly in the component&#39;s context, the application controller:</p>
+<div class="highlight"><pre><code class="diff language-diff" data-lang="diff">App.ApplicationController = Ember.Controller.extend({
+    needs: [&#39;monthlyReport&#39;],
+
+<span class="gi">+   actions: {</span>
+
+<span class="gi">+     changeMonth: function(id) {</span>
+<span class="gi">+      this.transitionToRoute( </span>
+<span class="gi">+        &#39;monthlyReport&#39;, </span>
+<span class="gi">+        this.get(&#39;store&#39;).find(&#39;monthlyReport&#39;, id )</span>
+<span class="gi">+      );</span>
+<span class="gi">+     }</span>
+
+<span class="gi">+   }</span>
+});
+</code></pre></div>
+<p>When the user changes the month, we use the <code>transititonToRoute</code> method to a transition to a new route that represents the selected month (for example, <code>/Jan-2013</code>). The first paraemters <code>monthlyReport</code> is the name of our route (which comes from when we created a <code>monthlyReport</code> resource), and the second parameter is the model that will back that route. Remember our component&#39;s action sends the id of the month (e.g. &quot;Jan-2013&quot;) as a parameter. Here, we use that id to find the corresponding model for our route.</p>
+
+<p>Now we&#39;ve rendered a component that can transition our app to different routes!</p>
+
+<h2>Our first computed property</h2>
+
+<p>Computed properties gives us a clean way to add view-layer logic to our model&#39;s raw data. Here, we want to give our monthly report a title. If you recall, our <code>MonthlyReport</code> model has a date property that refers to a <code>moment</code> date object. We can create a <code>title</code> property that formats that object, and which we&#39;ll use as a header for our report in the center panel.</p>
+
+<p><aside>
+  Read more about computed properties <a href="http://emberjs.com/guides/object-model/computed-properties/">here</a>.
+</aside></p>
+<div class="highlight"><pre><code class="js language-js" data-lang="js"><span class="nx">App</span><span class="p">.</span><span class="nx">MonthlyReportController</span> <span class="o">=</span> <span class="nx">Ember</span><span class="p">.</span><span class="nx">ObjectController</span><span class="p">.</span><span class="nx">extend</span><span class="p">({</span>
+  <span class="nx">title</span><span class="o">:</span> <span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
+    <span class="c1">// format the moment object (http://momentjs.com/docs/#/displaying/format/)</span>
+    <span class="k">return</span> <span class="k">this</span><span class="p">.</span><span class="nx">get</span><span class="p">(</span><span class="s1">&#39;date&#39;</span><span class="p">).</span><span class="nx">format</span><span class="p">(</span><span class="s1">&#39;MMMM YYYY&#39;</span><span class="p">);</span>
+  <span class="p">}.</span><span class="nx">property</span><span class="p">(</span><span class="s1">&#39;model&#39;</span><span class="p">)</span>
+<span class="p">});</span>
+</code></pre></div>
+<p>This will give us a nice title for our month, like &quot;January 2013&quot;. We can now display it in our template:</p>
+<div class="highlight"><pre><code class="html language-html" data-lang="html"><span class="nt">&lt;script </span><span class="na">type=</span><span class="s">&quot;text/x-handlebars&quot;</span> <span class="na">data-template-name=</span><span class="s">&quot;monthlyReport&quot;</span><span class="nt">&gt;</span>
+  <span class="o">&lt;</span><span class="nx">h1</span><span class="o">&gt;</span><span class="p">{{</span> <span class="nx">title</span> <span class="p">}}</span><span class="o">&lt;</span><span class="err">/h1&gt;</span>
+<span class="nt">&lt;/script&gt;</span>
+</code></pre></div>
+<p>Now we&#39;ve got the datepicker working: it changes our application&#39;s routes, and the report&#39;s template updates accordingly.</p>
+
+<p>We&#39;re ready to add some charts!</p>
+
+
+    </div>
+
+  <div class="container">
+<div class="site">
+
+  </body>
+</html>

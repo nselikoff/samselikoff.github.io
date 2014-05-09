@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html>
+  <head>
+      <meta charset="utf-8">
+      <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+      <title>Ember and D3: Starting out</title>
+      <meta name="viewport" content="width=device-width">
+
+      <!-- CSS -->
+      <link rel="stylesheet" href="/css/style.css">
+      <link rel="stylesheet" href="/css/print.css">
+      <link href='http://fonts.googleapis.com/css?family=Italianno' rel='stylesheet' type='text/css'>
+
+      <!-- Fonts -->
+      <link href='http://fonts.googleapis.com/css?family=Lato:100,200,300,400' rel='stylesheet' type='text/css'>
+      <link rel="stylesheet" href="/css/font-awesome-4.0.3/css/font-awesome.min.css">
+
+      <link rel="shortcut icon" href="/images/favicon.ico" type="image/x-icon">
+      <script src="/js/jquery.js"></script>
+      <!--[if lt IE 9]>
+        <script src="/js/vendor/modernizr.js"></script>
+      <![endif]-->
+
+  </head>
+  <body>
+    <script>
+      (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+      (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+      m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+      })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+
+      ga('create', 'UA-42527632-1', 'samselikoff.com');
+      ga('send', 'pageview');
+
+    </script>
+        
+    <div id="blog" class="wrap">
+  
+  <div class="container">
+    <article>
+      <div class="clearfix">
+        <a class="thin back" href="/blog">
+          <i class="fa fa-chevron-left"></i> Back to blog
+        </a>
+
+        <p class="date"><small class="soft">July 23, 2013</small></p>
+      </div>
+
+      <h1>Ember and D3: Starting out
+        <span class="subtitle thin"></span>
+      </h1>
+
+      <p>Over the past few months I&#39;ve worked on several data reporting projects. For the actual visualizations I&#39;ve been using <a href="http://www.d3js.org">D3.js</a>, but at the start I was writing the rest of the architecture by hand. It didn&#39;t take long for my projects to become unwieldy; adding just a few filters and controls introduced the need to maintain application state, which dramatically increased each project&#39;s complexity. Without much experience in Javascript or application design, my apps quickly turned into unmaintainable piles of spaghetti.</p>
+
+<p>As I looked into cleaning up my Javascript, one of the first resources I came across was <a href="http://www.slideshare.net/rmurphey/cleaner-leaner-meaner-refactoring-your-jquery">this slideshare presentation</a>. It&#39;s a great introduction to using OOP to organize JS DOM manipulations and event handling. After that, I started using <a href="http://backbonejs.org/">Backbone.js</a>. (For anyone starting out with Backbone, I highly recommend taking a look at <a href="https://github.com/kjbekkelund/writings/blob/master/published/understanding-backbone.md">this article</a>.) I learned a great deal through writing and re-writing several of my JS projects in Backbone, though I still felt ill-equipped in my decision-making - and Backbone certainly left me with a lot of decisions to make.</p>
+
+<p>Recently, a friend recommended I give <a href="http://www.emberjs.com">Ember.js</a> a shot. Ember&#39;s opinionated architecture and design are exactly what I&#39;d been looking for. I could now scaffold a project and be confident in its foundation. Interactive data visualizations can get tricky really fast, but I&#39;ve already caught a glimpse of several Ember features that can smooth out these rough spots. I&#39;m just starting out, but I&#39;d like to share what I&#39;ve learned about how these two technologies can work together.</p>
+
+<h3>The data</h3>
+
+<p>One of the first design decisions I encountered when making visualizations in Ember was how to separate the data from the actual rendering. Any sort of dynamic visualization really needs this separation, since your users will be loading and filtering new data without refreshing the page. Backbone&#39;s data layer is pretty straightforward: models hold objects, and collections hold arrays of models. This fit nicely with D3, as you&#39;re typically manipulating arrays of objects. Collections are thus the natural choice for the data layer in Backbone.</p>
+
+<p>Ember also has models, but instead of collections it uses controllers to store arrays of data. Why the new name? Because controllers actually serve a different purpose than collections. There is little functional difference between models and collections in Backbone - when working with data, sometimes you are working with many blog posts (a collection) and sometimes a single post (a model). Both Backbone objects essentially start out as data stores with some additional functionality, and allow you to add your own properties and methods as you see fit. But controllers in Ember serve a specific and distinct purpose from models. From <a href="http://emberjs.com/guides/controllers/">the guide</a>,</p>
+
+<blockquote>
+<p>...controllers allow you to decorate your models with display logic. In general, your models will have properties that are saved to the server, while controllers will have properties that your app does not need to save to the server.</p>
+</blockquote>
+
+<p>So, our raw server data will be stored in models, and our controllers will act as a layer on top of that raw data. Controllers have the express purpose of &#39;decorating&#39; our data, allowing us to slice it up in various ways and massage it into a form suitable for our visualizations.</p>
+
+<p>Using controllers in this way may seem strange to folks coming from server-side MVC* frameworks like Rails or Symfony (it did to me!), but once you drop the comparison things ease up. Essentially, your raw data is loaded into models, processed and transformed by controllers, and the finished product is handed off to your views/templates for rendering. As an added bonus, controllers are only instantiated when requested, and hang around for the life of your application. This works well for applications centered around data visualization, which tend to reuse data considerably.</p>
+
+<p>There are other perks that come with using controllers, such as the ability to mimick any nested relationships that exist in your data, but suffice it to say that Ember&#39;s data layer will serve our needs well.</p>
+
+<p><em>This is Part 1 in a series of posts on building a basic interactive dashboard using <a href="http://www.d3js.org">D3.js</a> and <a href="http://www.emberjs.com">Ember.js</a>.</em></p>
+
+
+<!-- ---
+layout: writing
+---
+
+<p>Over the past few months I&#39;ve worked on several data reporting projects. For the actual visualizations I&#39;ve been using <a href="http://www.d3js.org">D3.js</a>, but at the start I was writing the rest of the architecture by hand. It didn&#39;t take long for my projects to become unwieldy; adding just a few filters and controls introduced the need to maintain application state, which dramatically increased each project&#39;s complexity. Without much experience in Javascript or application design, my apps quickly turned into unmaintainable piles of spaghetti.</p>
+
+<p>As I looked into cleaning up my Javascript, one of the first resources I came across was <a href="http://www.slideshare.net/rmurphey/cleaner-leaner-meaner-refactoring-your-jquery">this slideshare presentation</a>. It&#39;s a great introduction to using OOP to organize JS DOM manipulations and event handling. After that, I started using <a href="http://backbonejs.org/">Backbone.js</a>. (For anyone starting out with Backbone, I highly recommend taking a look at <a href="https://github.com/kjbekkelund/writings/blob/master/published/understanding-backbone.md">this article</a>.) I learned a great deal through writing and re-writing several of my JS projects in Backbone, though I still felt ill-equipped in my decision-making - and Backbone certainly left me with a lot of decisions to make.</p>
+
+<p>Recently, a friend recommended I give <a href="http://www.emberjs.com">Ember.js</a> a shot. Ember&#39;s opinionated architecture and design are exactly what I&#39;d been looking for. I could now scaffold a project and be confident in its foundation. Interactive data visualizations can get tricky really fast, but I&#39;ve already caught a glimpse of several Ember features that can smooth out these rough spots. I&#39;m just starting out, but I&#39;d like to share what I&#39;ve learned about how these two technologies can work together.</p>
+
+<h3>The data</h3>
+
+<p>One of the first design decisions I encountered when making visualizations in Ember was how to separate the data from the actual rendering. Any sort of dynamic visualization really needs this separation, since your users will be loading and filtering new data without refreshing the page. Backbone&#39;s data layer is pretty straightforward: models hold objects, and collections hold arrays of models. This fit nicely with D3, as you&#39;re typically manipulating arrays of objects. Collections are thus the natural choice for the data layer in Backbone.</p>
+
+<p>Ember also has models, but instead of collections it uses controllers to store arrays of data. Why the new name? Because controllers actually serve a different purpose than collections. There is little functional difference between models and collections in Backbone - when working with data, sometimes you are working with many blog posts (a collection) and sometimes a single post (a model). Both Backbone objects essentially start out as data stores with some additional functionality, and allow you to add your own properties and methods as you see fit. But controllers in Ember serve a specific and distinct purpose from models. From <a href="http://emberjs.com/guides/controllers/">the guide</a>,</p>
+
+<blockquote>
+<p>...controllers allow you to decorate your models with display logic. In general, your models will have properties that are saved to the server, while controllers will have properties that your app does not need to save to the server.</p>
+</blockquote>
+
+<p>So, our raw server data will be stored in models, and our controllers will act as a layer on top of that raw data. Controllers have the express purpose of &#39;decorating&#39; our data, allowing us to slice it up in various ways and massage it into a form suitable for our visualizations.</p>
+
+<p>Using controllers in this way may seem strange to folks coming from server-side MVC* frameworks like Rails or Symfony (it did to me!), but once you drop the comparison things ease up. Essentially, your raw data is loaded into models, processed and transformed by controllers, and the finished product is handed off to your views/templates for rendering. As an added bonus, controllers are only instantiated when requested, and hang around for the life of your application. This works well for applications centered around data visualization, which tend to reuse data considerably.</p>
+
+<p>There are other perks that come with using controllers, such as the ability to mimick any nested relationships that exist in your data, but suffice it to say that Ember&#39;s data layer will serve our needs well.</p>
+
+<p><em>This is Part 1 in a series of posts on building a basic interactive dashboard using <a href="http://www.d3js.org">D3.js</a> and <a href="http://www.emberjs.com">Ember.js</a>.</em></p>
+
+<div id="post" class="reading">
+	<article>
+		<header class="page-header">
+  		<h1 class="title">Ember and D3: Starting out</h3>
+			<p class="byline">July 23, 2013 &#183; programming, ember, d3, and datavis</p>
+		</header>
+		<section>
+			<p>Over the past few months I&#39;ve worked on several data reporting projects. For the actual visualizations I&#39;ve been using <a href="http://www.d3js.org">D3.js</a>, but at the start I was writing the rest of the architecture by hand. It didn&#39;t take long for my projects to become unwieldy; adding just a few filters and controls introduced the need to maintain application state, which dramatically increased each project&#39;s complexity. Without much experience in Javascript or application design, my apps quickly turned into unmaintainable piles of spaghetti.</p>
+
+<p>As I looked into cleaning up my Javascript, one of the first resources I came across was <a href="http://www.slideshare.net/rmurphey/cleaner-leaner-meaner-refactoring-your-jquery">this slideshare presentation</a>. It&#39;s a great introduction to using OOP to organize JS DOM manipulations and event handling. After that, I started using <a href="http://backbonejs.org/">Backbone.js</a>. (For anyone starting out with Backbone, I highly recommend taking a look at <a href="https://github.com/kjbekkelund/writings/blob/master/published/understanding-backbone.md">this article</a>.) I learned a great deal through writing and re-writing several of my JS projects in Backbone, though I still felt ill-equipped in my decision-making - and Backbone certainly left me with a lot of decisions to make.</p>
+
+<p>Recently, a friend recommended I give <a href="http://www.emberjs.com">Ember.js</a> a shot. Ember&#39;s opinionated architecture and design are exactly what I&#39;d been looking for. I could now scaffold a project and be confident in its foundation. Interactive data visualizations can get tricky really fast, but I&#39;ve already caught a glimpse of several Ember features that can smooth out these rough spots. I&#39;m just starting out, but I&#39;d like to share what I&#39;ve learned about how these two technologies can work together.</p>
+
+<h3>The data</h3>
+
+<p>One of the first design decisions I encountered when making visualizations in Ember was how to separate the data from the actual rendering. Any sort of dynamic visualization really needs this separation, since your users will be loading and filtering new data without refreshing the page. Backbone&#39;s data layer is pretty straightforward: models hold objects, and collections hold arrays of models. This fit nicely with D3, as you&#39;re typically manipulating arrays of objects. Collections are thus the natural choice for the data layer in Backbone.</p>
+
+<p>Ember also has models, but instead of collections it uses controllers to store arrays of data. Why the new name? Because controllers actually serve a different purpose than collections. There is little functional difference between models and collections in Backbone - when working with data, sometimes you are working with many blog posts (a collection) and sometimes a single post (a model). Both Backbone objects essentially start out as data stores with some additional functionality, and allow you to add your own properties and methods as you see fit. But controllers in Ember serve a specific and distinct purpose from models. From <a href="http://emberjs.com/guides/controllers/">the guide</a>,</p>
+
+<blockquote>
+<p>...controllers allow you to decorate your models with display logic. In general, your models will have properties that are saved to the server, while controllers will have properties that your app does not need to save to the server.</p>
+</blockquote>
+
+<p>So, our raw server data will be stored in models, and our controllers will act as a layer on top of that raw data. Controllers have the express purpose of &#39;decorating&#39; our data, allowing us to slice it up in various ways and massage it into a form suitable for our visualizations.</p>
+
+<p>Using controllers in this way may seem strange to folks coming from server-side MVC* frameworks like Rails or Symfony (it did to me!), but once you drop the comparison things ease up. Essentially, your raw data is loaded into models, processed and transformed by controllers, and the finished product is handed off to your views/templates for rendering. As an added bonus, controllers are only instantiated when requested, and hang around for the life of your application. This works well for applications centered around data visualization, which tend to reuse data considerably.</p>
+
+<p>There are other perks that come with using controllers, such as the ability to mimick any nested relationships that exist in your data, but suffice it to say that Ember&#39;s data layer will serve our needs well.</p>
+
+<p><em>This is Part 1 in a series of posts on building a basic interactive dashboard using <a href="http://www.d3js.org">D3.js</a> and <a href="http://www.emberjs.com">Ember.js</a>.</em></p>
+
+		</section>
+
+		<hr>	
+
+		<div class="comments">
+		    <div id="disqus_thread"></div>
+		    <script type="text/javascript">
+		        /* * * CONFIGURATION VARIABLES: EDIT BEFORE PASTING INTO YOUR WEBPAGE * * */
+		        var disqus_shortname = 'samselikoff'; // required: replace example with your forum shortname
+
+		        /* * * DON'T EDIT BELOW THIS LINE * * */
+		        (function() {
+		            var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+		            dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+		            (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+		        })();
+		    </script>
+		    <noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+		    <a href="http://disqus.com" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
+		</div>
+	</article>
+</div>
+ -->
+    </article>
+
+    <div class="comments">
+      <div id="disqus_thread"></div>
+      <script type="text/javascript">
+        /* * * CONFIGURATION VARIABLES: EDIT BEFORE PASTING INTO YOUR WEBPAGE * * */
+        var disqus_shortname = 'samselikoff'; // required: replace example with your forum shortname
+
+        /* * * DON'T EDIT BELOW THIS LINE * * */
+        (function() {
+            var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+            dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+            (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+        })();
+      </script>
+      <noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+      <a href="http://disqus.com" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
+    </div>
+    
+  </div>
+
+<!-- 
+  <footer>
+    <p class="copyright muted">&copy; 2013 Sam Selikoff</p>
+  </footer>
+ -->
+</div>
+
+  </body>
+</html>

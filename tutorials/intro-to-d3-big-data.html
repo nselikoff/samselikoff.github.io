@@ -1,0 +1,703 @@
+<!DOCTYPE html>
+<html>
+  <head>
+      <meta charset="utf-8">
+      <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+      <title>An Introduction to D3</title>
+      <meta name="viewport" content="width=device-width">
+
+      <!-- CSS -->
+      <link rel="stylesheet" href="/css/style.css">
+      <link rel="stylesheet" href="/css/print.css">
+      <link href='http://fonts.googleapis.com/css?family=Italianno' rel='stylesheet' type='text/css'>
+
+      <!-- Fonts -->
+      <link href='http://fonts.googleapis.com/css?family=Lato:100,200,300,400' rel='stylesheet' type='text/css'>
+      <link rel="stylesheet" href="/css/font-awesome-4.0.3/css/font-awesome.min.css">
+
+      <link rel="shortcut icon" href="/images/favicon.ico" type="image/x-icon">
+      <script src="/js/jquery.js"></script>
+      <!--[if lt IE 9]>
+        <script src="/js/vendor/modernizr.js"></script>
+      <![endif]-->
+
+  </head>
+  <body>
+    <script>
+      (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+      (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+      m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+      })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+
+      ga('create', 'UA-42527632-1', 'samselikoff.com');
+      ga('send', 'pageview');
+
+    </script>
+        
+    <div id="writing" class="wrap">
+  
+  <div class="container">
+    <article>
+      <div class="clearfix">
+        <a class="thin back" href="/writing">
+          <i class="fa fa-chevron-left"></i> Back to writing
+        </a>
+
+        <p class="date"><small class="soft">February 24, 2014</small></p>
+      </div>
+
+      <h1>An Introduction to D3
+        <span class="subtitle thin">With applications to big data</span>
+      </h1>
+
+      <p><a href="http://www.d3js.org">D3.js</a> is a JavaScript library used to create interactive visualizations in the browser. This tutorial discusses some motivations for learning D3, presents a brief introduction to the library, and concludes with some thoughts on big data.</p>
+
+<ol>
+<li><a href="#why-data-vis">Why data vis?</a>
+
+<ul>
+<li><a href="#whats-d3">What&#39;s D3?</a></li>
+<li><a href="#what-d3-isnt">What D3 isn&#39;t</a></li>
+<li><a href="#can-d3-help">Can D3 help in the context of big data?</a></li>
+</ul></li>
+<li><a href="#learning-d3">Learning D3</a>
+
+<ul>
+<li><a href="#selections">A first look at Selections</a></li>
+<li><a href="#selecting-arrays">Selecting arrays of elements</a></li>
+<li><a href="#selecting-no-elements">Selecting no elements</a></li>
+<li><a href="#data-join">The data join</a></li>
+<li><a href="#data-stored-in-dom">Data is stored in the DOM</a></li>
+<li><a href="#finish-the-chart">Using data-driven transformations to finish the chart</a></li>
+</ul></li>
+<li><a href="#conclusion">Some concluding thoughts on D3 and big data</a></li>
+</ol>
+
+<h2 id="why-data-vis">Why data vis?</h2>
+
+<p>&quot;Big Data&quot; is something of a buzzword, but beneath it is an important idea: that data can be so complex, it&#39;s incomprehensible.</p>
+
+<p>Data visualization is an answer to this problem. Visualizations distill lots of information into something we humans can understand, typically by focusing on an aggregate or subset view of the data.</p>
+
+<p>Visualizations help in two ways: <em>communication</em> and <em>exploration</em>. Take this press release about Apple&#39;s revenues:</p>
+
+<blockquote>
+<p>Apple today announced financial results for its fiscal 2013 fourth quarter ended September 28, 2013. The Company posted quarterly revenue of $37.5 billion and quarterly net profit of $7.5 billion, or $8.26 per diluted share. These results compare to revenue of $36 billion and net profit of $8.2 billion, or $8.67 per diluted share, in the year-ago quarter. Gross margin was 37 percent compared to 40 percent in the year-ago quarter. International sales accounted for 60 percent of the quarter’s revenue. <small>(<a href="http://www.apple.com/pr/library/2013/10/28Apple-Reports-Fourth-Quarter-Results.html?sr=hotnews.rss">source</a>)</small></p>
+</blockquote>
+
+<p>How long did it take you to consume this information? Now consider this stock price chart:</p>
+
+<p><img src="/images/posts/2014-03/intro-d3-stock-chart.png" alt="Stock chart"></p>
+
+<p>How long did it take you to understand the main trend of the chart? Do you feel like you have a better grasp of the data? By increasing the density of information, data visualization helps us communicate our insights quickly and effectively.</p>
+
+<p>Visualizations also help us explore. Sometimes we don&#39;t know anything about our data, and investigating it in its raw form is impractical. We can use data vis to present the data in a form more suitable for exploration. Look at this calendar chart, which shows daily percentage changes in the DOW stock index over several years:</p>
+
+<p><img src="/images/posts/2014-03/intro-d3-calendar-chart.png" alt="Calendar chart"></p>
+
+<p><aside>Source: <a href="http://bl.ocks.org/mbostock/4063318">http://bl.ocks.org/mbostock/4063318</a></aside></p>
+
+<p>With this chart, we&#39;re able to quickly scan several years of data and see if there&#39;s anything interesting; indeed, the end of 2008 seems to merit further exploration.</p>
+
+<p>So data vis is about more than just making pretty charts. By facilitating communication and exploration, visualizations make our data more valuable.</p>
+
+<h3 id="whats-d3">What's D3?</h3>
+
+<p>D3 stands for Data-Driven Documents. Sounds like it could be useful for big data - but what does it mean?</p>
+
+<p>The word &quot;document&quot; in D3 refers to the DOM, which is what you see when you view a webpage (like this one). It&#39;s the parsed and rendered HTML and CSS. But it&#39;s more than that; it&#39;s a living, breathing thing. Javascript can manipulate the DOM, creating and deleting pieces of it. It&#39;s what enables web applications to be dynamic and interactive.</p>
+
+<p>At a higher level, the DOM is an agreed-upon set of terms for representing, updating, and querying information from documents. It makes CSS queries and DOM events possible. It&#39;s the raw stuff of the browser that all web developers are familiar with.</p>
+
+<p>Over time, JavaScript development on the web has gotten better, and we&#39;ve learned how to do some pretty cool things. We&#39;ve used libraries like jQuery to iron out cross-browser issues and we&#39;ve built plugins to make our UIs more interactive. But most of these innovations are related to GUI programming - because most of the time, we&#39;re building user interfaces for web applications.</p>
+
+<p>But we&#39;re here to create data visualizations! And data vis isn&#39;t quite the same as GUI programming. It&#39;s about mapping data (say, a time series dataset) to elements on the screen (bars, circles, or points).</p>
+
+<p>Building visualizations with tools that are suited for GUI programming is difficult and verbose. For example, if we were to set the heights of some hypothetical bars in an HTML document with vanilla JavaScript, it&#39;d look something like this:</p>
+<div class="highlight"><pre><code class="js language-js" data-lang="js"><span class="kd">var</span> <span class="nx">nums</span> <span class="o">=</span> <span class="p">[</span><span class="mi">80</span><span class="p">,</span> <span class="mi">53</span><span class="p">,</span> <span class="mi">125</span><span class="p">,</span> <span class="mi">200</span><span class="p">,</span> <span class="mi">28</span><span class="p">,</span> <span class="mi">97</span><span class="p">];</span>
+
+<span class="kd">var</span> <span class="nx">bars</span> <span class="o">=</span> <span class="nb">document</span><span class="p">.</span><span class="nx">getElementsByTagName</span><span class="p">(</span><span class="s2">&quot;rect&quot;</span><span class="p">);</span>
+<span class="k">for</span> <span class="p">(</span><span class="kd">var</span> <span class="nx">i</span> <span class="o">=</span> <span class="mi">0</span><span class="p">;</span> <span class="nx">i</span> <span class="o">&lt;</span> <span class="nx">bars</span><span class="p">.</span><span class="nx">length</span><span class="p">;</span> <span class="nx">i</span><span class="o">++</span><span class="p">)</span> <span class="p">{</span>
+  <span class="kd">var</span> <span class="nx">bar</span> <span class="o">=</span> <span class="nx">bars</span><span class="p">.</span><span class="nx">item</span><span class="p">(</span><span class="nx">i</span><span class="p">);</span>
+  <span class="nx">bar</span><span class="p">.</span><span class="nx">setAttribute</span><span class="p">(</span><span class="s2">&quot;height&quot;</span><span class="p">,</span> <span class="nx">nums</span><span class="p">[</span><span class="nx">i</span><span class="p">]);</span>
+<span class="p">}</span>
+</code></pre></div>
+<p>With D3, it&#39;s</p>
+<div class="highlight"><pre><code class="js language-js" data-lang="js"><span class="nx">d3</span><span class="p">.</span><span class="nx">selectAll</span><span class="p">(</span><span class="s1">&#39;rect&#39;</span><span class="p">)</span>
+  <span class="p">.</span><span class="nx">attr</span><span class="p">(</span><span class="s1">&#39;height&#39;</span><span class="p">,</span> <span class="kd">function</span><span class="p">(</span><span class="nx">d</span><span class="p">,</span> <span class="nx">i</span><span class="p">)</span> <span class="p">{</span><span class="k">return</span> <span class="nx">nums</span><span class="p">[</span><span class="nx">i</span><span class="p">];});</span>
+</code></pre></div>
+<p>In addition to using less code, the second approach has a few benefits:</p>
+
+<ul>
+<li><p>D3 embraces <a href="http://en.wikipedia.org/wiki/Declarative_programming">declarative programming</a>, and we can see that here: we&#39;re able to set the height of all elements in the collection using <code>.attr</code>, rather than having to set them individually using a <code>for</code> loop. Declarative code abstracts away implementation details, making complicated transformations easier to reason about. It&#39;s a powerful paradigm, but definitely takes some getting used to.</p></li>
+<li><p>We&#39;re getting a little ahead of ourselves, but as you can see we&#39;re using a function to set the heights. And this function is smart; it <em>knows</em> about our data, and makes the relevant datum (and index) available to the transformation. This is how we can set attributes of elements in a data-driven way.</p></li>
+</ul>
+
+<p>So D3 is really about giving us an API that&#39;s well-suited for creating and updating the DOM based on our data - hence the name Data-Driven Documents. </p>
+
+<h3 id="what-d3-isnt">What D3 isn't</h3>
+
+<p>It may surprise you to learn that D3 doesn&#39;t come with any prebuilt visualizations; there&#39;s no <code>d3.barchart</code>, for instance. That&#39;s because D3 aims to be low-level and flexible. There are many excellent charting libraries out there, several of them built with D3. If your goal is to render a few standard charts as quickly as possible, you may want to consider using a library instead of writing D3 code by hand.</p>
+
+<p>D3 is also not a compatability layer, though it does take care of a few cross-browser quirks. D3 is built to work in modern browsers.</p>
+
+<p>Finally, you should know that D3 is about web standards. Recall that the first D in D3 refers to the DOM. That&#39;s web standards talk: HTML, CSS, and JavaScript. There&#39;s no new technology here, no Flash, Java applets or proprietary plugins. D3 works in any modern browser on any device, out of the box. So learning D3 involves learning about web standards and modern web development.</p>
+
+<h3 id="can-d3-help">Can D3 help in the context of big data?</h3>
+
+<p>Because it is low-level, D3 may seem like a bad fit for big data analysis. Indeed, it won&#39;t help you run gigabytes of data through a model; but once you use some other tool to do this, D3 can help you make sense of the result.</p>
+
+<p>Recall the two primary uses of data visualization: explanation, and exploration.</p>
+
+<p>If you have some unique insight about a dataset, D3 gives you the control to communicate it effectively.</p>
+
+<p><img src="/images/posts/2014-03/intro-d3-nominees.png" alt="Nominees connections"></p>
+
+<p>This screenshot is taken from a <a href="http://www.nytimes.com/interactive/2013/02/20/movies/among-the-oscar-contenders-a-host-of-connections.html?_r=0">New York Times interactive</a>, and shows various relationships among Oscar nominees. These authors could have written an article, but instead used data vis to create a compelling (and beautiful) diagram of their insights. This is a pretty unique visualization - and the point is, it&#39;s not found in Excel&#39;s built-in charts.</p>
+
+<p>So if you have a specific idea or concept you want to explain - which people in big data often do - learning D3 can give you the power to do so in a unique and effective way.</p>
+
+<p>Second, if you&#39;re focused on exploring data, D3 can be useful - but don&#39;t underestimate the learning curve. If you need to crank out a dozen pie and bar charts by the end of the week, you probably shouldn&#39;t write them from scratch using D3. Instead, use a library with built-in visualizations, like <a href="http://code.shutterstock.com/rickshaw/">Rickshaw</a>, <a href="http://www.highcharts.com/">Highcharts</a> or <a href="http://nvd3.org/">NVD3</a>.</p>
+
+<p>Sometimes, though, existing solutions aren&#39;t enough, and you need a custom way to explore your data. Remember the calendar chart from above? It was very useful for detecting trends, and it&#39;s also not available in Excel. So D3 can be a valuable aid in data exploration, as it gives you control over your data&#39;s representation, and lets you add interactivity.</p>
+
+<p>Alright, enough ceremony. Lets learn it!</p>
+
+<h2 id="learning-d3">Learning D3</h2>
+
+<p>This tutorial won&#39;t cover all the parts of the D3 toolbelt; there are plenty of existing resources that do that. Instead, it will introduce some of the library&#39;s main conceptual hurdles: selections and data bindings. Once you get a handle on these, the code in the <a href="https://github.com/mbostock/d3/wiki/Gallery">scores of community examples</a> should make much more sense, and with <a href="https://github.com/mbostock/d3/wiki/API-Reference">D3&#39;s documentation</a> by your side you&#39;ll be ready to start working on your own.</p>
+
+<p>I like learning through examples, so in this tutorial we&#39;ll build a simple bar chart:</p>
+
+<div id="chart1"></div>
+
+<p>Not as exciting as some of the examples you&#39;ve seen, I know. But its simplicity will help us focus on D3&#39;s primitives.</p>
+
+<p>The chart is rendered in SVG; open up the inspector (<code>Command-Option-I</code> on Mac, <code>Ctrl-Shift-I</code> on Windows) and see for yourself:</p>
+
+<p><img src="/images/posts/2014-03/intro-d3-inspector.png" alt="inspector"></p>
+
+<p>The SVG is right there in the DOM, the same place as the rest of this document. Its parsed and ready to style and manipulate.</p>
+
+<p>D3 is not just about SVG; we can use it to create an HTML table, for instance. But SVG lets us do far more than we could with just CSS and the standard HTML elements.</p>
+
+<h3 id="selections">A first look at Selections</h3>
+
+<p>To start out, say our initial document is</p>
+<div class="highlight"><pre><code class="html language-html" data-lang="html"><span class="nt">&lt;html&gt;</span>
+  <span class="nt">&lt;body&gt;</span>
+    <span class="nt">&lt;script </span><span class="na">src=</span><span class="s">&quot;d3.v3.min.js&quot;</span> <span class="na">charset=</span><span class="s">&quot;utf-8&quot;</span><span class="nt">&gt;&lt;/script&gt;</span>
+    <span class="nt">&lt;script&gt;</span>
+      <span class="c1">// Our code</span>
+    <span class="nt">&lt;/script&gt;</span> 
+  <span class="nt">&lt;/body&gt;</span>
+<span class="nt">&lt;/html&gt;</span>
+</code></pre></div>
+<p><aside>We&#39;re referencing a local copy of D3 here; you can also link directly to the latest release with <code>src=&quot;http://d3js.org/d3.v3.min.js&quot;</code>.</aside></p>
+
+<p>The data driving this chart is a simple array:</p>
+<div class="highlight"><pre><code class="js language-js" data-lang="js"><span class="kd">var</span> <span class="nx">nums</span> <span class="o">=</span> <span class="p">[</span><span class="mi">80</span><span class="p">,</span> <span class="mi">53</span><span class="p">,</span> <span class="mi">125</span><span class="p">,</span> <span class="mi">200</span><span class="p">,</span> <span class="mi">28</span><span class="p">,</span> <span class="mi">97</span><span class="p">];</span>
+</code></pre></div>
+<p>Now, the bars are actually SVG <code>&lt;rect&gt;</code> elements. To render an SVG rectangle, we first need an <code>&lt;svg&gt;</code> container element. Let&#39;s add one to the DOM:</p>
+<div class="highlight"><pre><code class="js language-js" data-lang="js"><span class="nx">d3</span><span class="p">.</span><span class="nx">select</span><span class="p">(</span><span class="s1">&#39;body&#39;</span><span class="p">).</span><span class="nx">append</span><span class="p">(</span><span class="s1">&#39;svg&#39;</span><span class="p">);</span>
+</code></pre></div>
+<p>Breaking this down, <code>d3</code> is the D3 global object - think <code>$</code> from jQuery. And also similar to jQuery, <code>d3</code> lets us select elements in the DOM. Here we&#39;re selecting the <code>&lt;body&gt;</code> element.</p>
+
+<p>Selecting something in D3 produces a <a href="https://github.com/mbostock/d3/wiki/Selections">D3 selection</a>. <strong>Selections</strong> are at the heart of D3; we&#39;ll see their full power soon. For now, just think of a selection as an object that wraps a DOM element and provides some useful methods. </p>
+
+<p><aside>One commonly used method is <code>.style</code>, which lets you change CSS properties. Try running this in the console: <code>d3.select(&#39;body&#39;).style(&#39;background-color&#39;, &#39;blue&#39;);</code></aside></p>
+
+<p>Above, we used the <code>append</code> method on a selection to create an <code>&lt;svg&gt;</code> element. Because we typically append things to the DOM in order to do something with them, D3 conveniently returns a new selection after calling <code>.append()</code>. This new selection wraps the newly created element, letting us write the following:</p>
+<div class="highlight"><pre><code class="js language-js" data-lang="js"><span class="kd">var</span> <span class="nx">svg</span> <span class="o">=</span> <span class="nx">d3</span><span class="p">.</span><span class="nx">select</span><span class="p">(</span><span class="s1">&#39;body&#39;</span><span class="p">).</span><span class="nx">append</span><span class="p">(</span><span class="s1">&#39;svg&#39;</span><span class="p">);</span>
+</code></pre></div>
+<p>Now, we can work with this local variable <code>svg</code>, just as if we had written <code>d3.select(&#39;svg&#39;)</code>. Since the SVG element acts as a viewport for all the other elements we&#39;ll be adding to it, we also need to set its width and height:</p>
+<div class="highlight"><pre><code class="diff language-diff" data-lang="diff">var svg = d3.select(&#39;body&#39;).append(&#39;svg&#39;)
+<span class="gi">+   .attr(&#39;width&#39;, 200)</span>
+<span class="gi">+   .attr(&#39;height&#39;, 200);</span>
+</code></pre></div>
+<h3 id="selecting-arrays">Selecting arrays of elements</h3>
+
+<p>It&#39;s time to create some <code>&lt;rect&gt;</code> elements. One way is to just <code>append</code> them, like we did the <code>svg</code> element. We have six data points, so let&#39;s append six rectangles:</p>
+<div class="highlight"><pre><code class="js language-js" data-lang="js"><span class="c1">// Recall, var nums = [80, 53, 125, 200, 28, 97];</span>
+
+<span class="nx">svg</span><span class="p">.</span><span class="nx">append</span><span class="p">(</span><span class="s1">&#39;rect&#39;</span><span class="p">);</span>
+<span class="nx">svg</span><span class="p">.</span><span class="nx">append</span><span class="p">(</span><span class="s1">&#39;rect&#39;</span><span class="p">);</span>
+<span class="nx">svg</span><span class="p">.</span><span class="nx">append</span><span class="p">(</span><span class="s1">&#39;rect&#39;</span><span class="p">);</span>
+<span class="nx">svg</span><span class="p">.</span><span class="nx">append</span><span class="p">(</span><span class="s1">&#39;rect&#39;</span><span class="p">);</span>
+<span class="nx">svg</span><span class="p">.</span><span class="nx">append</span><span class="p">(</span><span class="s1">&#39;rect&#39;</span><span class="p">);</span>
+<span class="nx">svg</span><span class="p">.</span><span class="nx">append</span><span class="p">(</span><span class="s1">&#39;rect&#39;</span><span class="p">);</span>
+</code></pre></div>
+<p>Indeed this works - you can try it yourself in the inspector. But this is D3, and the whole point is to use data to drive the creation of our documents. Clearly, this solution falls short. Before we see how it&#39;s really done, we need to learn more about selections. </p>
+
+<p>We&#39;ve seen <code>d3.select</code> used on single elements, like <code>d3.select(&#39;body&#39;)</code> and <code>d3.select(&#39;svg&#39;)</code>. But there&#39;s another method in D3 that produces a selection: <code>d3.selectAll()</code>. This selection wraps an <em>array</em> of all matching elements, instead of just the first matched element on the page. For example,</p>
+<div class="highlight"><pre><code class="js language-js" data-lang="js"><span class="kd">var</span> <span class="nx">paragraphs</span> <span class="o">=</span> <span class="nx">d3</span><span class="p">.</span><span class="nx">selectAll</span><span class="p">(</span><span class="s1">&#39;p&#39;</span><span class="p">);</span>
+</code></pre></div>
+<p>returns a D3 selection wrapping all <code>&lt;p&gt;</code> tags on the page. </p>
+
+<p>Even though these selections wrap arrays of element, the selection itself is still singular; there is only one selection. So, what is a selection, really? We can select single elements, or groups of them, but what does the selection itself represent?</p>
+
+<p>Think of selections as higher-level than the DOM elements themselves. A selection is a managing object that references some set of elements in the DOM; it knows details about them, and can apply transformations to them, but it also knows more.</p>
+
+<p><strong>Understanding selections is central to using D3.</strong> It takes some time to wrap your head around them, so after playing with the code a bit, be sure to read as much as you can about them from the docs and other tutorials.</p>
+
+<p>Now, remember when we changed the color of the <code>&lt;body&gt;</code> element earlier? If you wanted to do that for all the paragraphs in our page, you might try something like this:</p>
+<div class="highlight"><pre><code class="js language-js" data-lang="js"><span class="nx">paragraphs</span><span class="p">.</span><span class="nx">forEach</span><span class="p">(</span><span class="kd">function</span><span class="p">(</span><span class="nx">p</span><span class="p">)</span> <span class="p">{</span>
+  <span class="nx">p</span><span class="p">.</span><span class="nx">style</span><span class="p">(</span><span class="s1">&#39;background-color&#39;</span><span class="p">,</span> <span class="s1">&#39;green&#39;</span><span class="p">);</span>
+<span class="p">});</span>
+</code></pre></div>
+<p>But this is not how we do things in D3. Remember, a selection should be thought of and acted upon as a single managing object. So when it comes time to transform elements in the DOM, you operate on the selection itself:</p>
+<div class="highlight"><pre><code class="js language-js" data-lang="js"><span class="nx">paragraphs</span><span class="p">.</span><span class="nx">style</span><span class="p">(</span><span class="s1">&#39;background-color&#39;</span><span class="p">,</span> <span class="s1">&#39;green&#39;</span><span class="p">);</span>
+</code></pre></div>
+<p>The selection applies the transformation to each element it references.</p>
+
+<p>This style of programming is called <em>declarative programming</em>, because we declare our intention (<em>what</em> we want to do), rather than imperative programming, where we write out each step our program takes to accomplish a given task (<em>how</em> to do it). </p>
+
+<p>As you can already see, declarative programming is a powerful abstraction that  reduces complexity and opens the door for more powerful code. It is the programming style D3 has adopted.</p>
+
+<h3 id="selecting-no-elements">Selecting no elements</h3>
+
+<p>We now come to an interesting twist. Say our DOM looks like this:</p>
+<div class="highlight"><pre><code class="html language-html" data-lang="html"><span class="nt">&lt;body&gt;</span>
+  <span class="nt">&lt;svg&gt;</span>
+    <span class="nt">&lt;rect&gt;&lt;/rect&gt;</span>
+    <span class="nt">&lt;rect&gt;&lt;/rect&gt;</span>
+    <span class="nt">&lt;rect&gt;&lt;/rect&gt;</span>
+    <span class="nt">&lt;rect&gt;&lt;/rect&gt;</span>
+    <span class="nt">&lt;rect&gt;&lt;/rect&gt;</span>
+    <span class="nt">&lt;rect&gt;&lt;/rect&gt;</span>
+  <span class="nt">&lt;/svg&gt;</span>
+<span class="nt">&lt;/body&gt;</span>
+</code></pre></div>
+<p>We can use <code>selectAll</code> to grab the bars:</p>
+<div class="highlight"><pre><code class="js language-js" data-lang="js"><span class="kd">var</span> <span class="nx">bars</span> <span class="o">=</span> <span class="nx">d3</span><span class="p">.</span><span class="nx">selectAll</span><span class="p">(</span><span class="s1">&#39;rect&#39;</span><span class="p">);</span>
+</code></pre></div>
+<p>which gives us a selection that wraps all six elements in the page. But what if we selected the bars before we appended them? Say our DOM looked like this</p>
+<div class="highlight"><pre><code class="html language-html" data-lang="html"><span class="nt">&lt;body&gt;</span>
+  <span class="nt">&lt;svg&gt;</span>
+  <span class="nt">&lt;/svg&gt;</span>
+<span class="nt">&lt;/body&gt;</span>
+</code></pre></div>
+<p>and we wrote this</p>
+<div class="highlight"><pre><code class="js language-js" data-lang="js"><span class="kd">var</span> <span class="nx">bars</span> <span class="o">=</span> <span class="nx">d3</span><span class="p">.</span><span class="nx">selectAll</span><span class="p">(</span><span class="s1">&#39;rect&#39;</span><span class="p">);</span>
+</code></pre></div>
+<p>Clearly, we&#39;re selecting something that doesn&#39;t exist, so it will return null - right? It&#39;s as if we applied a CSS rule to a <code>#home</code> element that doesn&#39;t exist, or used jQuery to find all the <code>&lt;h5&gt;</code> elements - <code>$(&#39;h5&#39;)</code> - but none are in the DOM. So we should get a null response, an empty set, a vacuous solution.</p>
+
+<p>Actually, even though our selection <em>is</em> empty, the return value is not vacuous. Remember, selections are higher-level than the actual DOM elements themselves. In this case, <code>bars</code> doesn&#39;t refer to anything that actually exists in the DOM; but it still <em>represents</em> an array of <code>&lt;rect&gt;</code> elements.</p>
+
+<p>So, you can think of selections as having two pieces:</p>
+
+<div id="selections1"></div>
+
+<p>The first is this Platonic piece that represents elements in the abstract; think, <em>a single body tag</em>, or <em>an array of rect elements</em>. These things don&#39;t actually exist anywhere. The second piece is the actual set of elements the selection matched in the current DOM - for example, the six <code>&lt;rect&gt;</code> elements that we can see in the inspector, right now. </p>
+
+<p>Having both pieces is key to how D3 operates.</p>
+
+<h3 id="data-join">The data join and subselections</h3>
+
+<p>As you may have guessed, D3 can compare both parts of a selection - the elements that the selection represents, and the elements that the selection matched in the DOM - and tell us how they&#39;re similar, and how they&#39;re different.</p>
+
+<p>The elements matched in the DOM simply come from the DOM - so getting them is easy. But how does D3 know what our selection should represent? So far, it has either represented a single element, or an array of elements. But how big is the array? And what are the actual elements of the array which the selection refers to? <em>An array of rect elements</em> is very different from <em>an array of three rect elements whose values are 2, 5 and 10</em>.</p>
+
+<p>This is where the <strong>data join</strong> comes in. The data join gives us a way to specify exactly what our selections represent. We use it like this:</p>
+<div class="highlight"><pre><code class="js language-js" data-lang="js"><span class="kd">var</span> <span class="nx">nums</span> <span class="o">=</span> <span class="p">[</span><span class="mi">80</span><span class="p">,</span> <span class="mi">53</span><span class="p">,</span> <span class="mi">125</span><span class="p">,</span> <span class="mi">200</span><span class="p">,</span> <span class="mi">28</span><span class="p">,</span> <span class="mi">97</span><span class="p">];</span>
+
+<span class="kd">var</span> <span class="nx">bars</span> <span class="o">=</span> <span class="nx">svg</span><span class="p">.</span><span class="nx">selectAll</span><span class="p">(</span><span class="s1">&#39;rect&#39;</span><span class="p">)</span>
+  <span class="p">.</span><span class="nx">data</span><span class="p">(</span><span class="nx">nums</span><span class="p">);</span>   <span class="c1">// there it is!</span>
+</code></pre></div>
+<p>Now we have a selection, but one that is bound to data. D3 knows <em>exactly</em> what that selection represents: an array of six different <code>&lt;rect&gt;</code> elements, and each element maps to the corresponding item in the array (the first <code>&lt;rect&gt;</code> corresponds to 80, the second to 53, and so on).</p>
+
+<p><aside>In this simple example, rectangles are mapped to data via their index in the array. You can use <a href="https://github.com/mbostock/d3/wiki/Selections#wiki-data">key</a> functions for more complicated mapping.</aside></p>
+
+<p>Now that D3 knows exactly what our selection represents, and it also knows what&#39;s currently in the DOM (since it performed a <code>.selectAll()</code>), it can tell us what&#39;s similar and what&#39;s different between these two pieces. It does this by creating <strong>subselections</strong>: selections that represent a subset of the original selection.</p>
+
+<p>There are three subselections in D3: <strong>enter</strong>, <strong>exit</strong>, and <strong>update</strong>:</p>
+
+<div id="selections2"></div>
+
+<p><aside>Diagram adapted from <a href="http://bost.ocks.org/mike/join/">http://bost.ocks.org/mike/join/</a></aside></p>
+
+<p>The names are appropriate:</p>
+
+<ul>
+<li><p><strong>enter</strong> refers to elements in the data that were joined to our selection, but that aren&#39;t currently in the DOM. Typically these elements will be entering the DOM via <code>.append()</code> - hence the name <em>enter</em>.</p></li>
+<li><p><strong>exit</strong> refers to elements in the current DOM, but not in the data that was joined to the selection. Typically these will be exiting the DOM via <code>.remove()</code>.</p></li>
+<li><p><strong>update</strong> refers to elements present in both groups.</p></li>
+</ul>
+
+<p>So how does this look in practice? Recall what we&#39;re trying to do: create bars. We&#39;re working with the following selection,</p>
+<div class="highlight"><pre><code class="js language-js" data-lang="js"><span class="kd">var</span> <span class="nx">nums</span> <span class="o">=</span> <span class="p">[</span><span class="mi">80</span><span class="p">,</span> <span class="mi">53</span><span class="p">,</span> <span class="mi">125</span><span class="p">,</span> <span class="mi">200</span><span class="p">,</span> <span class="mi">28</span><span class="p">,</span> <span class="mi">97</span><span class="p">];</span>
+
+<span class="kd">var</span> <span class="nx">bars</span> <span class="o">=</span> <span class="nx">svg</span><span class="p">.</span><span class="nx">selectAll</span><span class="p">(</span><span class="s1">&#39;rect&#39;</span><span class="p">)</span>
+  <span class="p">.</span><span class="nx">data</span><span class="p">(</span><span class="nx">nums</span><span class="p">);</span>
+</code></pre></div>
+<p>but the <code>&lt;rect&gt;</code> elements don&#39;t exist in the DOM. That means there are six rects in our enter subselection. We access them like this:</p>
+<div class="highlight"><pre><code class="js language-js" data-lang="js"><span class="nx">bars</span><span class="p">.</span><span class="nx">enter</span><span class="p">()</span>
+</code></pre></div>
+<p>Now we have a hold of the new elements, and we can do whatever we want with them. In this case, for each element in our representation, we want to append an actual <code>&lt;rect&gt;</code> element to the DOM:</p>
+<div class="highlight"><pre><code class="js language-js" data-lang="js"><span class="nx">bars</span><span class="p">.</span><span class="nx">enter</span><span class="p">().</span><span class="nx">append</span><span class="p">(</span><span class="s1">&#39;rect&#39;</span><span class="p">);</span>
+</code></pre></div>
+<p>If you try this out yourself, the DOM will be what you expect.</p>
+<div class="highlight"><pre><code class="html language-html" data-lang="html"><span class="c">&lt;!-- From this...  --&gt;</span>
+<span class="cp">&lt;!DOCTYPE html&gt;</span>
+<span class="nt">&lt;html&gt;</span>
+<span class="nt">&lt;body&gt;</span>
+  <span class="nt">&lt;script </span><span class="na">src=</span><span class="s">&#39;http://d3js.org/d3.v3.min.js&#39;</span><span class="nt">&gt;&lt;/script&gt;</span>
+  <span class="nt">&lt;script&gt;</span>
+    <span class="kd">var</span> <span class="nx">nums</span> <span class="o">=</span> <span class="p">[</span><span class="mi">80</span><span class="p">,</span> <span class="mi">53</span><span class="p">,</span> <span class="mi">125</span><span class="p">,</span> <span class="mi">200</span><span class="p">,</span> <span class="mi">28</span><span class="p">,</span> <span class="mi">97</span><span class="p">];</span>
+
+    <span class="kd">var</span> <span class="nx">svg</span> <span class="o">=</span> <span class="nx">d3</span><span class="p">.</span><span class="nx">select</span><span class="p">(</span><span class="s1">&#39;body&#39;</span><span class="p">).</span><span class="nx">append</span><span class="p">(</span><span class="s1">&#39;svg&#39;</span><span class="p">)</span>
+      <span class="p">.</span><span class="nx">attr</span><span class="p">(</span><span class="s1">&#39;height&#39;</span><span class="p">,</span> <span class="mi">200</span><span class="p">)</span>
+      <span class="p">.</span><span class="nx">attr</span><span class="p">(</span><span class="s1">&#39;width&#39;</span><span class="p">,</span> <span class="mi">200</span><span class="p">)</span>
+
+    <span class="kd">var</span> <span class="nx">bars</span> <span class="o">=</span> <span class="nx">svg</span><span class="p">.</span><span class="nx">selectAll</span><span class="p">(</span><span class="s1">&#39;rect&#39;</span><span class="p">)</span>
+      <span class="p">.</span><span class="nx">data</span><span class="p">(</span><span class="nx">nums</span><span class="p">);</span>
+
+    <span class="nx">bars</span><span class="p">.</span><span class="nx">enter</span><span class="p">().</span><span class="nx">append</span><span class="p">(</span><span class="s1">&#39;rect&#39;</span><span class="p">);</span>
+  <span class="nt">&lt;/script&gt;</span>
+<span class="nt">&lt;/body&gt;</span>
+<span class="nt">&lt;/html&gt;</span>
+
+<span class="c">&lt;!-- You get this! --&gt;</span>
+<span class="nt">&lt;svg&gt;</span>
+  <span class="nt">&lt;rect&gt;&lt;/rect&gt;</span>
+  <span class="nt">&lt;rect&gt;&lt;/rect&gt;</span>
+  <span class="nt">&lt;rect&gt;&lt;/rect&gt;</span>
+  <span class="nt">&lt;rect&gt;&lt;/rect&gt;</span>
+  <span class="nt">&lt;rect&gt;&lt;/rect&gt;</span>
+  <span class="nt">&lt;rect&gt;&lt;/rect&gt;</span>
+<span class="nt">&lt;/svg&gt;</span>
+</code></pre></div>
+<p>Congratulations - you&#39;ve just created your first data-driven document!</p>
+
+<h3 id="data-stored-in-dom">Data is stored in the DOM</h3>
+
+<p>You may be thinking that the data used in the join is stored in D3 somewhere. In fact, when the elements are inserted into the DOM, D3  stores the data as properties on the DOM nodes themselves. Try running the following command in the console:</p>
+<div class="highlight"><pre><code class="js language-js" data-lang="js"><span class="nb">document</span><span class="p">.</span><span class="nx">querySelector</span><span class="p">(</span><span class="s1">&#39;rect&#39;</span><span class="p">).</span><span class="nx">__data__</span>  <span class="c1">//80</span>
+</code></pre></div>
+<p>As you can see, the data is available without the use of D3. It has become part of the document.</p>
+
+<p>This leads us to another fact about selections: <strong>selections are transient.</strong> If you ever need to reselect elements that have been inserted into the DOM, you simply reselect them:</p>
+<div class="highlight"><pre><code class="text language-text" data-lang="text">d3.selectAll(&#39;rect&#39;)
+</code></pre></div>
+<p>Inspect those in the console, and you&#39;ll see the same rectangles bound to the same data. D3 provides a convenient method for returning the array of data bound to a selection: <code>d3.selectAll(&#39;rect&#39;).data()</code>.</p>
+
+<p>And with that, we&#39;re over the hump! Selections are the main hurdle in D3, and as you practice with them, the rest of the library will make much more sense.</p>
+
+<h3 id="finish-the-chart">Using data-driven transformations to finish the chart</h3>
+
+<p>We now have data-bound <code>&lt;rect&gt;</code> elements in the DOM. This is exciting! The elements know about their data, and it&#39;s easy for us to apply more data-driven transformations to finish our chart.</p>
+
+<p>So, what&#39;s the next step? Well, you may notice that our six rectangles aren&#39;t actually rendering anything out to the screen. This is because they don&#39;t have a width or height.</p>
+
+<p>Let&#39;s give them some dummy properties, and see what we&#39;re working with:</p>
+
+<div class="row">
+  <div class="col-1-2">
+
+<div class="highlight"><pre><code class="js"><span class="kd">var</span> <span class="nx">bars</span> <span class="o">=</span> <span class="nx">d3</span><span class="p">.</span><span class="nx">selectAll</span><span class="p">(</span><span class="s1">&#39;rect&#39;</span><span class="p">)</span>
+    <span class="p">.</span><span class="nx">attr</span><span class="p">(</span><span class="s1">&#39;width&#39;</span><span class="p">,</span> <span class="mi">20</span><span class="p">)</span>
+    <span class="p">.</span><span class="nx">attr</span><span class="p">(</span><span class="s1">&#39;height&#39;</span><span class="p">,</span> <span class="mi">20</span><span class="p">);</span>
+</code></pre></div>
+
+  </div>
+  <div class="col-1-2 last">
+    <div id="chart2" class="well"></div>    
+  </div>
+</div>
+
+<p>Hmm, that doesn&#39;t look like six bars. Actually, if you open your inspector, you&#39;ll see that all six are there. The problem is, they&#39;re all stacked on top of each other.</p>
+
+<p>Let&#39;s spread them out a bit. <code>&lt;rect&gt;</code> elements have <code>x</code> and <code>y</code> properties that control horizontal and vertical position, respectively. We&#39;ll offset the bars horizontally by changing the <code>x</code> property. Now, we can&#39;t just set them all to something like 10; this will move them all together. We need to move the first one a bit, the second a bit more, and so on.</p>
+
+<p>Sounds like we need another data-driven transformation! Above, we created bar elements in a data-driven way by calling <code>append</code> on a bound selection. Once we&#39;re working with a bound selection, we can implement additional data-driven transformations using the following syntax (which you&#39;ll recognize from our very first example):</p>
+<div class="highlight"><pre><code class="js language-js" data-lang="js"><span class="nx">selection</span><span class="p">.</span><span class="nx">attr</span><span class="p">(</span><span class="s1">&#39;attrName&#39;</span><span class="p">,</span> <span class="kd">function</span><span class="p">(</span><span class="nx">d</span><span class="p">,</span> <span class="nx">i</span><span class="p">)</span> <span class="p">{</span> <span class="k">return</span> <span class="p">[</span><span class="nx">expression</span> <span class="nx">using</span> <span class="nx">d</span><span class="o">/</span><span class="nx">i</span><span class="p">];</span> <span class="p">});</span>
+<span class="nx">selection</span><span class="p">.</span><span class="nx">style</span><span class="p">(</span><span class="s1">&#39;cssProp&#39;</span><span class="p">,</span> <span class="kd">function</span><span class="p">(</span><span class="nx">d</span><span class="p">,</span> <span class="nx">i</span><span class="p">)</span> <span class="p">{</span> <span class="k">return</span> <span class="p">[</span><span class="nx">expression</span> <span class="nx">using</span> <span class="nx">d</span><span class="o">/</span><span class="nx">i</span><span class="p">];</span> <span class="p">});</span>
+</code></pre></div>
+<p>The second parameter of either an attribute (e.g. <code>width</code> on a rectangle) or a css property (e.g. <code>opacity</code>) can be a function, instead of just a static value. And that function accepts two parameters corresponding to the current element in the selection: <code>d</code> represents the current data point, and <code>i</code> the current index.</p>
+
+<p>For this transformation, we&#39;ll use each bar&#39;s index. </p>
+
+<div class="row">
+  <div class="col-1-2">
+
+<div class="highlight"><pre><code class="js"><span class="nx">bars</span><span class="p">.</span><span class="nx">attr</span><span class="p">(</span><span class="s1">&#39;x&#39;</span><span class="p">,</span> <span class="kd">function</span><span class="p">(</span><span class="nx">d</span><span class="p">,</span> <span class="nx">i</span><span class="p">)</span> <span class="p">{</span>
+  <span class="k">return</span> <span class="mi">30</span><span class="o">*</span><span class="nx">i</span><span class="p">;</span>
+<span class="p">});</span>
+</code></pre></div>
+
+  </div>
+  <div class="col-1-2 last">
+    <div id="chart3" class="well"></div>    
+  </div>
+</div>
+
+<p>Finally, making some progress! Next, we need to get these boxes looking more like bars. To change the height of a <code>&lt;rect&gt;</code> element, set the <code>height</code> property. In this case, we want the height of each bar to equal the number in our original data array, so...</p>
+
+<div class="row">
+  <div class="col-1-2">
+
+<div class="highlight"><pre><code class="js"><span class="c1">// remember, var nums = [80, 53, 125, 200, 28, 97]</span>
+
+<span class="nx">bars</span><span class="p">.</span><span class="nx">attr</span><span class="p">(</span><span class="s1">&#39;height&#39;</span><span class="p">,</span> <span class="kd">function</span><span class="p">(</span><span class="nx">d</span><span class="p">,</span> <span class="nx">i</span><span class="p">)</span> <span class="p">{</span>
+  <span class="k">return</span> <span class="nx">d</span><span class="p">;</span>
+<span class="p">});</span>
+</code></pre></div>
+
+  </div>
+  <div class="col-1-2 last">
+    <div id="chart4" class="well"></div>    
+  </div>
+</div>
+
+<p>Success! Well, sort of. Our bars seems to have flipped themselves upside-down. What gives?</p>
+
+<p>It turns out that the origin of the <a href="http://www.w3.org/TR/SVG/coords.html#InitialCoordinateSystem">SVG coordinate plane</a> is the top-left corner:</p>
+
+<div class="text-center">
+  <img src="/images/posts/2014-03/intro-d3-svg-coord.png" alt="SVG coordinates"> 
+</div>
+
+<p>So, the &quot;base&quot; of each bar actually runs along the top of the <code>&lt;svg&gt;</code> element, and the <code>height</code> property extends a bar downward. To make our bars stand rightside-up, we can use the <code>y</code> offset to pull each bar down to the bottom of the <code>&lt;svg&gt;</code> element.</p>
+
+<p>We want to offset each bar by the total height of the chart, less that bar&#39;s height. Since we set the height of our <code>&lt;svg&gt;</code> to 200, here&#39;s what we need to do:</p>
+
+<div class="row">
+  <div class="col-1-2">
+
+<div class="highlight"><pre><code class="js"><span class="nx">bars</span><span class="p">.</span><span class="nx">attr</span><span class="p">(</span><span class="s1">&#39;y&#39;</span><span class="p">,</span> <span class="kd">function</span><span class="p">(</span><span class="nx">d</span><span class="p">,</span> <span class="nx">i</span><span class="p">)</span> <span class="p">{</span>
+  <span class="k">return</span> <span class="mi">200</span> <span class="o">-</span> <span class="nx">d</span><span class="p">;</span>
+<span class="p">});</span>
+</code></pre></div>
+
+  </div>
+  <div class="col-1-2 last">
+    <div id="chart5" class="well"></div>    
+  </div>
+</div>
+
+<p>We did it! A simple data-driven bar chart, ripe for CSS styling and additional Javascript manipulation.</p>
+
+<h2 id="conclusion">Some concluding thoughts on D3 and big data</h2>
+
+<p>There are, of course, many - <em>many</em> - more things to learn, both inside and outside the D3 library itself. Scales, axes, transitions, events, brushes...it can seem a little overwhelming. But it&#39;s also a testament to how much control D3 gives you over your visualizations. After learning this, one may wonder if such a low-level tool can really be useful for analyzing massive amounts of data. Aren&#39;t there libraries better equipped for this sort of thing?</p>
+
+<p>D3 certainly doesn&#39;t provide an end-all solution to the problem of big data analysis; but it plays an important role. First off, here&#39;s a list of some data-intensive projects and companies using D3:</p>
+
+<ul>
+<li><a href="http://square.github.io/cubism/">Cubism</a> and <a href="http://square.github.io/crossfilter/">Crossfilter</a>: display and filter 250,000 data points in real-time</li>
+<li><a href="http://techblog.netflix.com/2014/01/improving-netflixs-operational.html">Netflix</a> analytics</li>
+<li><a href="http://corner.squareup.com/2012/04/building-analytics.html">Square</a> analytics</li>
+<li><a href="https://addepar.com/">Addepar</a> financial tools</li>
+<li><a href="http://www.localytics.com/">Localytics</a></li>
+<li>Open-source tools binding D3 to R, Python</li>
+</ul>
+
+<p>There are many more beyond this list, but you get the idea: D3 has been making a splash among companies that deal with large amounts of data.</p>
+
+<p>More importantly, trends in modern analytics are bringing interactive visualizations to the fore. Not too long ago, computer hardware was expensive and data analysis time-consuming. Running a simple model could take hours or even days, so static analysis - writing an algorithm, feeding it some data, exploring the results, and repeating - was really the only option.</p>
+
+<p>But modern hardware has drastically impacted this process. Static reports have been replaced by dynamic, interactive real-time visualizations. And more companies are discovering that interactive tools are <em>the way</em> to gain actionable insights from their data.</p>
+
+<p>This is where D3 comes in. It gives you a toolkit for building complex visualizations rich with interactivity. Traditional server-side technologies are still useful for cleaning, aggregating, reducing and filtering raw data; but when it comes to viewing and interpreting the results, you need customized, dynamic visualizations. D3 can help you build those.</p>
+
+<p>Human knowledge and intuition has always played a role in data analysis. It tells us where to look, what to look for, and what to ignore. D3 lets us build tools to enhance these capabilities, giving us more control and better understanding of our data.</p>
+
+<h2>Learn more</h2>
+
+<p>This tutorial barely scratched the surface of what D3 has to offer, so here are some more resources to help you on your journey. If you don&#39;t understand things the first time around, don&#39;t get discouraged; D3 is one of those things that starts to make sense after hearing the same ideas presented in two or three different ways.</p>
+
+<p>Most importantly, practice!</p>
+
+<ul>
+<li><a href="https://github.com/mbostock/d3/wiki/Gallery">Examples</a>. Inspiring and instructive. The <a href="https://github.com/mbostock/d3/wiki/Gallery#wiki-basic-charts">basic charts</a> are a good place to start.</li>
+<li><a href="https://github.com/mbostock/d3/wiki/Tutorials">Tutorials</a>, especially
+
+<ul>
+<li><a href="http://bost.ocks.org/mike/bar/">Let&#39;s make a bar chart</a></li>
+<li><a href="http://bl.ocks.org/mbostock/3808218">The General Update Pattern</a></li>
+</ul></li>
+<li>Scott Murray&#39;s <a href="http://alignedleft.com/tutorials/d3/">online tutorials</a> and <a href="http://shop.oreilly.com/product/0636920026938.do?cmp=af-strata-books-videos-product_cj_9781449339739_%25zp">book</a></li>
+<li><a href="https://groups.google.com/forum/#!forum/d3-js">Google forum</a></li>
+</ul>
+
+<script src="/js/d3.v3.min.js"></script>
+
+<script>
+  var width = d3.select('article').style('width').replace("px","");
+
+  var nums = [80, 53, 125, 200, 28, 97];
+
+  // #chart1
+  var svg = d3.select('#chart1').append('svg')
+    .attr('height', 200)
+    .attr('width', 200)
+    .style('display', 'block')
+    .style('margin', '0 auto');
+  svg.selectAll('rect')
+      .data(nums)
+    .enter().append('rect')
+      .attr('width', 20)
+      .attr('height', function(d) {return d;})
+      .attr('y', function(d) {return 200 - d;})
+      .attr('x', function(d, i) {return i*30;});
+
+  // #selections1
+  var selections1 = d3.select('#selections1').append('svg')
+      .attr('width', width)
+      .attr('height', 100)
+  selectionsLabel(selections1);
+  
+  // #selections2
+  var selections2 = d3.select('#selections2').append('svg')
+      .attr('width', width)
+      .attr('height', 350)
+  selectionsLabel(selections2);
+
+  var rep = selections2.append("g").attr("transform", "translate(280, 220)").classed('circles', true);
+  rep.append("circle")
+      .style("fill", "#3182bd");
+  rep.append("text").attr("x", -50).text("Enter");
+  rep.append("text").attr("x", 60).text("Update");
+
+  var dom = selections2.append("g").attr("transform", "translate(400, 220)").classed('circles', true);
+  dom.append("circle")
+      .style("fill", "#e6550d");
+  dom.append("text").attr("x", 50).text("Exit");
+
+  selections2.selectAll(".circles text")
+    .style('text-anchor', 'middle');
+  selections2.selectAll(".circles circle")
+    .style('opacity', .25)
+    .style("stroke", "black")
+    .style("stroke-width", "2px")
+    .attr("r", 110);
+
+  function selectionsLabel(svg) {
+    var label = svg.append('g')
+        .attr('transform', 'translate(' + width/2 + ',20)');
+
+    label.append('text').text('Selection');
+    label.append("text").text("Representation")
+        .attr("y", 65)
+        .attr("x", -100);
+    label.append("text").text("Current DOM")
+        .attr("y", 65)
+        .attr("x", 100);
+
+    label.selectAll('text').style('text-anchor', 'middle') .style('font-weight', 'bold');
+
+    label.append('line')
+        .attr('x1', -30)
+        .attr('y1', 10)
+        .attr('x2', -90)
+        .attr('y2', 40);
+    label.selectAll('line').style('stroke', 'black').style('stroke-width', 2);
+    label.append('circle')
+        .attr('cx', -90)
+        .attr('cy', 40)
+        .attr('r', 3)
+        .attr('stroke', 'black')
+
+    label.append('line')
+        .attr('x1', 30)
+        .attr('y1', 10)
+        .attr('x2', 90)
+        .attr('y2', 40);
+    label.selectAll('line').style('stroke', 'black').style('stroke-width', 2);
+    label.append('circle')
+        .attr('cx', 90)
+        .attr('cy', 40)
+        .attr('r', 3)
+        .attr('stroke', 'black')
+  }
+
+  // #chart2
+  var svg = d3.select('#chart2').append('svg')
+    .attr('height', 200)
+    .style('display', 'block')
+    .style('margin', '0 auto');
+  svg.selectAll('rect')
+      .data(nums)
+    .enter().append('rect')
+      .attr('width', 20)
+      .attr('height', 20);
+
+  // #chart3
+  var svg = d3.select('#chart3').append('svg')
+    .attr('height', 200)
+    // .attr('width', 200)
+    .style('display', 'block')
+    .style('margin', '0 auto');
+  svg.selectAll('rect')
+      .data(nums)
+    .enter().append('rect')
+      .attr('width', 20)
+      .attr('height', 20)
+      .attr('x', function(d, i) {return 30*i;});
+
+  // #chart4
+  var svg = d3.select('#chart4').append('svg')
+    .attr('height', 200)
+    // .attr('width', 200)
+    .style('display', 'block')
+    .style('margin', '0 auto');
+  svg.selectAll('rect')
+      .data(nums)
+    .enter().append('rect')
+      .attr('width', 20)
+      .attr('height', 20)
+      .attr('x', function(d, i) {return 30*i;})
+      .attr('height', function(d, i) {
+        return d;
+      });
+
+  // #chart5
+  var svg = d3.select('#chart5').append('svg')
+    .attr('height', 200)
+    // .attr('width', 200)
+    .style('display', 'block')
+    .style('margin', '0 auto');
+  svg.selectAll('rect')
+      .data(nums)
+    .enter().append('rect')
+      .attr('width', 20)
+      .attr('height', 20)
+      .attr('x', function(d, i) {return 30*i;})
+      .attr('height', function(d, i) {
+        return d;
+      }).attr('y', function(d, i) {
+        return 200 - d;
+      });
+
+</script>
+
+    </article>
+
+    <div class="comments">
+      <div id="disqus_thread"></div>
+      <script type="text/javascript">
+        /* * * CONFIGURATION VARIABLES: EDIT BEFORE PASTING INTO YOUR WEBPAGE * * */
+        var disqus_shortname = 'samselikoff'; // required: replace example with your forum shortname
+
+        /* * * DON'T EDIT BELOW THIS LINE * * */
+        (function() {
+            var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+            dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+            (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+        })();
+      </script>
+      <noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+      <a href="http://disqus.com" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
+    </div>
+    
+  </div>
+
+<!-- 
+  <footer>
+    <p class="copyright muted">&copy; 2013 Sam Selikoff</p>
+  </footer>
+ -->
+</div>
+
+  </body>
+</html>

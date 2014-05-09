@@ -1,0 +1,759 @@
+<!DOCTYPE html>
+<html>
+  <head>
+      <meta charset="utf-8">
+      <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+      <title>Some Javascript constructor patterns, and when to use them</title>
+      <meta name="viewport" content="width=device-width">
+
+      <!-- CSS -->
+      <link rel="stylesheet" href="/css/style.css">
+      <link rel="stylesheet" href="/css/print.css">
+      <link href='http://fonts.googleapis.com/css?family=Italianno' rel='stylesheet' type='text/css'>
+
+      <!-- Fonts -->
+      <link href='http://fonts.googleapis.com/css?family=Lato:100,200,300,400' rel='stylesheet' type='text/css'>
+      <link rel="stylesheet" href="/css/font-awesome-4.0.3/css/font-awesome.min.css">
+
+      <link rel="shortcut icon" href="/images/favicon.ico" type="image/x-icon">
+      <script src="/js/jquery.js"></script>
+      <!--[if lt IE 9]>
+        <script src="/js/vendor/modernizr.js"></script>
+      <![endif]-->
+
+  </head>
+  <body>
+    <script>
+      (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+      (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+      m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+      })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+
+      ga('create', 'UA-42527632-1', 'samselikoff.com');
+      ga('send', 'pageview');
+
+    </script>
+        
+    <div id="blog" class="wrap">
+  
+  <div class="container">
+    <article>
+      <div class="clearfix">
+        <a class="thin back" href="/blog">
+          <i class="fa fa-chevron-left"></i> Back to blog
+        </a>
+
+        <p class="date"><small class="soft">November 14, 2013</small></p>
+      </div>
+
+      <h1>Some Javascript constructor patterns, and when to use them
+        <span class="subtitle thin"></span>
+      </h1>
+
+      <p>As I&#39;ve been writing more and more JavaScript, I&#39;ve learned something about the community: Javascripters like to do things differently. Ask two developers, or look at two different popular open-source projects, and you&#39;ll probably come across two different solutions for doing the same thing, whether it&#39;s as trivial as writing getter/setter methods or as complicated as loading modules. Sometimes I&#39;m able to find a consensus around these solutions, but often I get lost among the alternatives, and find it difficult to determine which is most appropriate for my specific use case.</p>
+
+<p>One example is writing constructors. I&#39;ve come across several ways to do it - but which way is right? Why do some libraries choose one method, and some another? In this post, I&#39;d like to explore some of the techniques I&#39;ve encountered for writing constructor functions, their pros and cons, and when to use them.</p>
+
+<h2>Generic advice - using the <code>new</code> keyword (Mozilla)</h2>
+
+<p>If I had to describe the &#39;standard&#39; constructor pattern I&#39;ve seen, it&#39;s probably this:</p>
+
+<div class="highlight"><pre><code class="javascript"><span class="c1">// The constructor - like a class, but actually, not really</span>
+<span class="kd">function</span> <span class="nx">Person</span><span class="p">(</span><span class="nx">firstName</span><span class="p">,</span> <span class="nx">lastName</span><span class="p">)</span> <span class="p">{</span>
+  <span class="k">this</span><span class="p">.</span><span class="nx">firstName</span> <span class="o">=</span> <span class="nx">firstName</span><span class="p">;</span>
+  <span class="k">this</span><span class="p">.</span><span class="nx">lastName</span> <span class="o">=</span> <span class="nx">lastName</span><span class="p">;</span>
+
+  <span class="k">this</span><span class="p">.</span><span class="nx">fullName</span> <span class="o">=</span> <span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
+    <span class="k">return</span> <span class="k">this</span><span class="p">.</span><span class="nx">firstName</span> <span class="o">+</span> <span class="s1">&#39; &#39;</span> <span class="o">+</span> <span class="k">this</span><span class="p">.</span><span class="nx">lastName</span><span class="p">;</span>
+  <span class="p">};</span>
+<span class="p">}</span>
+
+<span class="c1">// Use it like this:</span>
+<span class="kd">var</span> <span class="nx">sam</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">Person</span><span class="p">(</span><span class="s1">&#39;Sam&#39;</span><span class="p">,</span> <span class="s1">&#39;Selikoff&#39;</span><span class="p">);</span>
+<span class="nx">sam</span><span class="p">.</span><span class="nx">firstName</span><span class="p">;</span>    <span class="c1">// &quot;Sam&quot;</span>
+<span class="nx">sam</span><span class="p">.</span><span class="nx">fullName</span><span class="p">();</span>   <span class="c1">// &quot;Sam Selikoff&quot;</span>
+
+<span class="nx">sam</span><span class="p">.</span><span class="nx">firstName</span> <span class="o">=</span> <span class="s1">&#39;Samuel&#39;</span><span class="p">;</span>
+<span class="nx">sam</span><span class="p">.</span><span class="nx">fullName</span><span class="p">();</span> <span class="c1">// Samuel Selikoff</span>
+</code></pre></div>
+
+<p>This looks a lot like something you&#39;d see in other languages - but don&#39;t get too comfortable. If you instantiate two objects this way, they won&#39;t necessarily always have the same properties and methods. This is because Javascript lets you mutate objects at run-time:</p>
+<div class="highlight"><pre><code class="js language-js" data-lang="js"><span class="c1">// Add a gender property to this instance only</span>
+<span class="nx">sam</span><span class="p">.</span><span class="nx">gender</span> <span class="o">=</span> <span class="s1">&#39;male&#39;</span><span class="p">;</span>
+</code></pre></div>
+<p>You are also able to change existing methods and properties on your objects, and this may lead to behavior you don&#39;t expect. For example, if you changed the <code>fullName</code> method on a single object, those changes wouldn&#39;t be shared across other objects. This is because the <code>fullName</code> method is an anonymous function that&#39;s attached directly to an instance variable. Each object will get its own copy of the function.</p>
+
+<p>If you wanted the function to be shared across all <code>Person</code> objects, you could do it like this:</p>
+<div class="highlight"><pre><code class="js language-js" data-lang="js"><span class="kd">function</span> <span class="nx">Person</span><span class="p">(</span><span class="nx">firstName</span><span class="p">,</span> <span class="nx">lastName</span><span class="p">)</span> <span class="p">{</span>
+  <span class="k">this</span><span class="p">.</span><span class="nx">firstName</span> <span class="o">=</span> <span class="nx">firstName</span><span class="p">;</span>
+  <span class="k">this</span><span class="p">.</span><span class="nx">lastName</span> <span class="o">=</span> <span class="nx">lastName</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="nx">Person</span><span class="p">.</span><span class="nx">prototype</span><span class="p">.</span><span class="nx">fullName</span> <span class="o">=</span> <span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
+  <span class="k">return</span> <span class="k">this</span><span class="p">.</span><span class="nx">firstName</span> <span class="o">+</span> <span class="s1">&#39; &#39;</span> <span class="o">+</span> <span class="k">this</span><span class="p">.</span><span class="nx">lastName</span><span class="p">;</span>
+<span class="p">};</span>
+</code></pre></div>
+<p>This constructor shares the <code>fullName</code> method across all instances. But how does it work?</p>
+
+<h2>Some Javascript eccentricities</h2>
+
+<p>Whenever we create objects using the <code>new</code> keyword (as we&#39;ve been doing), those objects get a special reference to the <code>Person.prototype</code> dictionary. (In Javascript, dictionaries are synonymous with objects, but I&#39;m using the term here to describe objects that are used mainly as key-value references). Prototypes in Javascript give objects a chain of dictionaries used to look up methods. This means that if we call a method on an object, but that method isn&#39;t defined directly on the object, Javscript will look for the method in the next level of the object&#39;s <em>prototype chain</em>. If it finds it, it will invoke the method; if not, it will keep looking up the chain.</p>
+
+<p>In our first example, we didn&#39;t define a prototype on the <code>Person</code> constructor, so all instances of <code>Person</code> had prototype chains that were only one level deep, so to speak; that is, they only contained the default <code>Object.prototype</code> dictionary. This dictionary contains methods that all objects tend to have in other languages - <code>toString</code>, for instance.</p>
+
+<p>In our second example, we explicitly created a dictionary on the <code>prototype</code> property of the constructor. The <code>new</code> keyword is aware of this property: it is designed to check if there&#39;s a dictionary at <code>.prototype</code>, and if there is, it adds it to the prototype chain of the object it&#39;s currently instantiating. This means that when we call <code>sam.fullName()</code>, Javascript first looks (unsuccessfully) for the method directly on the <code>sam</code> instance, and then moves on to the next level of <code>sam</code>&#39;s prototype chain, which is the dictionary we created. Because that dictionary <em>does</em> have the <code>fullName</code> method, that method gets invoked. And because all objects that get instantiated from the <code>Person</code> constructor have a reference to the same prototype dictionary, they all refer to the same method. So this is how we can share methods across objects.</p>
+
+<p>Before moving on to the next pattern, we should cover our use of the <code>this</code> keyword. I&#39;m sure you&#39;ve come across many JavaScript posts outlining the dangers of being ignorant of <code>this</code>. We use it in the above construct - so what do we need to be careful of?</p>
+
+<p>First, a brief overview. <code>this</code> is a keyword that&#39;s available in every Javascript function. It&#39;s really just a pointer. But what does it point to? <strong>The <code>this</code> keyword points to the object that&#39;s invoking the current function.</strong></p>
+
+<p>So, the <code>this</code> keyword is really just a pointer to an object. But the <code>new</code> keyword does something nice for us: it tells <code>this</code> to point to the object that&#39;s being instantiated. In this example from above,</p>
+<div class="highlight"><pre><code class="js language-js" data-lang="js"><span class="kd">var</span> <span class="nx">sam</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">Person</span><span class="p">(</span><span class="s1">&#39;Sam&#39;</span><span class="p">,</span> <span class="s1">&#39;Selikoff&#39;</span><span class="p">);</span>
+</code></pre></div>
+<p><code>this</code> pointed to <code>sam</code> whenever it was used inside the <code>Person</code> constructor function. If we hadn&#39;t used <code>new</code>, though, <code>this</code> would have referred to the global object, since that was the object executing the constructor function. For example:</p>
+<div class="highlight"><pre><code class="js language-js" data-lang="js"><span class="kd">var</span> <span class="nx">george</span> <span class="o">=</span> <span class="nx">Person</span><span class="p">(</span><span class="s1">&#39;George&#39;</span><span class="p">,</span> <span class="s1">&#39;Foreman&#39;</span><span class="p">);</span> <span class="c1">// forgot &#39;new&#39;</span>
+<span class="nx">george</span><span class="p">;</span> <span class="c1">// undefined</span>
+</code></pre></div>
+<p>Poor <code>george</code> is undefined! This is because when <code>Person</code> was invoked, <code>this</code> referred to the global object. That means these two lines within our constructor function</p>
+<div class="highlight"><pre><code class="js language-js" data-lang="js"><span class="k">this</span><span class="p">.</span><span class="nx">firstName</span> <span class="o">=</span> <span class="nx">firstName</span><span class="p">;</span>
+<span class="k">this</span><span class="p">.</span><span class="nx">lastName</span> <span class="o">=</span> <span class="nx">lastName</span><span class="p">;</span>
+</code></pre></div>
+<p>really just created two new global variables, <code>firstName</code> and <code>lastName</code>. When <code>Person</code> finished executing, it returned <code>undefined</code> (which happened by default, since it didn&#39;t return anything). So <code>george</code> is undefined, and you&#39;ve got two new globals - most certainly not what you intended!</p>
+
+<p>Therefore, it&#39;s important to remember to use the <code>new</code> keyword when using this pattern. Typically, constructors are capitalized (and instances lower-cased) to remind developers of this rule.</p>
+
+<h2>Closures with getter-setters (D3.js, jQuery)</h2>
+
+<p>We just saw that when using the above pattern, you need to manage the context of <code>this</code> by using the <code>new</code> keyword. If this troubles you, there is another technique which avoids <code>this</code> altogether.</p>
+
+<p>Here&#39;s an example of how it&#39;s used:</p>
+<div class="highlight"><pre><code class="js language-js" data-lang="js"><span class="kd">function</span> <span class="nx">Person</span><span class="p">(</span><span class="nx">firstName</span><span class="p">,</span> <span class="nx">lastName</span><span class="p">)</span> <span class="p">{</span>
+  <span class="kd">var</span> <span class="nx">_firstName</span> <span class="o">=</span> <span class="nx">firstName</span><span class="p">,</span>
+      <span class="nx">_lastName</span> <span class="o">=</span> <span class="nx">lastName</span><span class="p">;</span>
+
+  <span class="kd">var</span> <span class="nx">my</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="nx">firstName</span><span class="o">:</span> <span class="nx">_firstName</span><span class="p">,</span>
+    <span class="nx">lastName</span><span class="o">:</span> <span class="nx">_lastName</span>
+  <span class="p">};</span>
+
+  <span class="nx">my</span><span class="p">.</span><span class="nx">fullName</span> <span class="o">=</span> <span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
+    <span class="k">return</span> <span class="nx">_firstName</span> <span class="o">+</span> <span class="s1">&#39; &#39;</span> <span class="o">+</span> <span class="nx">_lastName</span><span class="p">;</span>
+  <span class="p">};</span>
+
+  <span class="c1">// Getter/setters</span>
+  <span class="nx">my</span><span class="p">.</span><span class="nx">firstName</span> <span class="o">=</span> <span class="kd">function</span><span class="p">(</span><span class="nx">value</span><span class="p">)</span> <span class="p">{</span>
+    <span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="nx">arguments</span><span class="p">.</span><span class="nx">length</span><span class="p">)</span> <span class="k">return</span> <span class="nx">_firstName</span><span class="p">;</span>
+    <span class="nx">_firstName</span> <span class="o">=</span> <span class="nx">value</span><span class="p">;</span>
+
+    <span class="k">return</span> <span class="nx">my</span><span class="p">;</span>
+  <span class="p">};</span>
+
+  <span class="nx">my</span><span class="p">.</span><span class="nx">lastName</span> <span class="o">=</span> <span class="kd">function</span><span class="p">(</span><span class="nx">value</span><span class="p">)</span> <span class="p">{</span>
+    <span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="nx">arguments</span><span class="p">.</span><span class="nx">length</span><span class="p">)</span> <span class="k">return</span> <span class="nx">_lastName</span><span class="p">;</span>
+    <span class="nx">_lastName</span> <span class="o">=</span> <span class="nx">value</span><span class="p">;</span>
+
+    <span class="k">return</span> <span class="nx">my</span><span class="p">;</span>
+  <span class="p">};</span>
+
+  <span class="k">return</span> <span class="nx">my</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="c1">// Use it like this:</span>
+<span class="kd">var</span> <span class="nx">mark</span> <span class="o">=</span> <span class="nx">Person</span><span class="p">(</span><span class="s1">&#39;Mark&#39;</span><span class="p">,</span> <span class="s1">&#39;Twain&#39;</span><span class="p">);</span> <span class="c1">// note: no `new` keyword!</span>
+
+<span class="nx">mark</span><span class="p">.</span><span class="nx">firstName</span><span class="p">(</span><span class="s1">&#39;Samuel&#39;</span><span class="p">);</span>
+<span class="nx">mark</span><span class="p">.</span><span class="nx">lastName</span><span class="p">(</span><span class="s1">&#39;Clemens&#39;</span><span class="p">);</span>
+
+<span class="nx">mark</span><span class="p">.</span><span class="nx">fullName</span><span class="p">();</span> <span class="c1">// Samuel Clemens</span>
+</code></pre></div>
+<p>I was confused about this pattern when I first encountered it; the first pattern seems much more intuitive and familiar. But notice that since we never use <code>this</code>, we simply don&#39;t have to worry about managing its context. No matter where we call <code>mark.fullName()</code>, or <code>mark.firstName(&#39;Mark&#39;)</code>, the instance variables we&#39;re manipulating (<code>_firstName</code> and <code>_lastName</code>) will be the correct ones.</p>
+
+<p>It turns out that the biggest benefit of this technique has nothing to do with <code>this</code>, though. Rather, it&#39;s the ability to give your objects private properties and methods. In the example above, as you may have guessed, <code>_firstName</code> and <code>_lastName</code> are not publically accessible:</p>
+<div class="highlight"><pre><code class="js language-js" data-lang="js"><span class="nx">mark</span><span class="p">.</span><span class="nx">_firstName</span><span class="p">;</span>
+<span class="c1">// undefined</span>
+</code></pre></div>
+<p>How does this work?</p>
+
+<p>Typically, when a function finishes executing, the variables declared within that function fall out of scope and get destroyed. But there&#39;s an exception: if any code outside the function holds a reference to these variables after the function finishes executing, they won&#39;t be cleaned up. Instead, a closure will be formed, and those variables will remain in memory.</p>
+
+<p>In the example above, since the <code>Person</code> constructor function returns the inner object <code>my</code>, and since <code>my</code> refers to the local variables <code>_firstName</code> and <code>_lastName</code> (both in the getter/setters and in the <code>fullName</code> method), the variables are not destroyed. When the getter/setters are invoked, they are operating on those same local variables. </p>
+
+<p>But why do this? Why go through this bizarre set of steps just to create what are essentially instance variables on an object - something we already know how to do? The difference between the local variables that the closure has access to and the instance variables on the objects we made earlier is that <em>the outside world does not have direct access to the local variables</em>.</p>
+
+<p>In the objects from our first pattern, anybody with a reference to the <code>sam</code> object could change the <code>firstName</code> property to anything he pleases: </p>
+<div class="highlight"><pre><code class="js language-js" data-lang="js"><span class="nx">sam</span><span class="p">.</span><span class="nx">firstName</span> <span class="o">=</span> <span class="s1">&#39;Peter&#39;</span><span class="p">;</span>
+</code></pre></div>
+<p>But the only way to access the variables using the current technique are through the getter/setter methods that we attached to <code>my</code>. By attaching those methods to <code>my</code>, we made them public; but the local variables themselves remain private. We can now add validation and other logic to our getter/setters, giving us more control over our object&#39;s interfaces.</p>
+
+<p>So we see that closures with getter/setters give us the ability to have private properties and methods, a feature of OOP we&#39;ve come to expect from other languages.</p>
+
+<h2>The best of both worlds?</h2>
+
+<p>As we&#39;ve seen, prototypes (from the first pattern) give us method sharing, and closures (from the second pattern) give us private properties. A natural follow-up question is: can we have both?</p>
+
+<p>It turns out the that there&#39;s no way for shared methods that live on the constructor&#39;s prototype to access the object&#39;s hidden, private properties. This means that you effectively have to choose one or the other. But which one should you choose, and why?</p>
+
+<p>If performance is crucial - for example, if you plan on making thousands of objects - you&#39;ll want to go with prototypes and shared methods. Removing redundant copies of methods is going to be a suggestion that any consultant or book on performance will make.</p>
+
+<p>On the other hand, if the object you&#39;re making is large and complex, and is designed mainly for public consumption, the flexibility that comes with having private properties and methods will probably win out, and you&#39;ll want to take advantage of closures. This is why libraries like jQuery and D3 tend to use closures: users will almost certainly only be using one instance of the library, which means that method sharing becomes less of an issue.</p>
+
+<p>As a clarifying note, you can certainly use prototypes and closures on the same object. But only the closures - which are <em>not</em> shared across instances - will have access to your object&#39;s private variables. The shared methods on the object&#39;s prototype will not.</p>
+
+<h2>Custom constructors (Ember.js, Backbone.js, etc.)</h2>
+
+<p>Sometimes when making objects within a framework or library, you&#39;ll avoid native Javascript constructors altogether. This allows the library to have more control over the objects in your application.</p>
+
+<p>In Ember, for example, you define objects by extending the base <code>Ember.Object</code> object, and then calling the <code>create</code> method on that object. You set properties by passing them into the constructor.</p>
+
+<p>Here&#39;s how it works:</p>
+<div class="highlight"><pre><code class="js language-js" data-lang="js"><span class="nx">Person</span> <span class="o">=</span> <span class="nx">Ember</span><span class="p">.</span><span class="nb">Object</span><span class="p">.</span><span class="nx">extend</span><span class="p">({</span>
+  <span class="nx">fullName</span><span class="o">:</span> <span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
+    <span class="k">return</span> <span class="k">this</span><span class="p">.</span><span class="nx">get</span><span class="p">(</span><span class="s1">&#39;firstName&#39;</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39; &#39;</span> <span class="o">+</span> <span class="k">this</span><span class="p">.</span><span class="nx">get</span><span class="p">(</span><span class="s1">&#39;lastName&#39;</span><span class="p">);</span>
+  <span class="p">}</span>
+<span class="p">});</span>
+
+<span class="kd">var</span> <span class="nx">tim</span> <span class="o">=</span> <span class="nx">Person</span><span class="p">.</span><span class="nx">create</span><span class="p">({</span>
+  <span class="nx">firstName</span><span class="o">:</span> <span class="s2">&quot;Tim&quot;</span><span class="p">,</span>
+  <span class="nx">lastName</span><span class="o">:</span> <span class="s2">&quot;Tebow&quot;</span>
+<span class="p">});</span>
+
+<span class="nx">tim</span><span class="p">.</span><span class="nx">fullName</span><span class="p">();</span>
+<span class="c1">// Tim Tebow</span>
+</code></pre></div>
+<p>Custom methods like this may feel unnecessary or cumbersome, but they give a lot of power to library authors.</p>
+
+<p>For example, one of Ember&#39;s core features is its data bindings system, which requires that each object in an application have the ability to observe the properties of other objects. By giving developers a custom constructor function, Ember can implement this functionality in a consistent and controlled way, without requiring developers to write additional code just to mix in the behavior. So in this case, the custom constructor simplifies use of the framework for Ember developers. Underneath the hood, these custom constructors are simply wrappers around one of the two methods we covered.</p>
+
+<p>So depending on what you&#39;re designing and who you&#39;re designing it for, a custom constructor function may be the way to go.</p>
+
+<h2>No constructor, a.k.a. the object literal</h2>
+
+<p>Of course, you can always create an object using no constructor at all:</p>
+<div class="highlight"><pre><code class="js language-js" data-lang="js"><span class="kd">var</span> <span class="nx">sam</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="nx">firstName</span><span class="o">:</span> <span class="s2">&quot;Sam&quot;</span><span class="p">,</span>
+    <span class="nx">lastName</span><span class="o">:</span> <span class="s2">&quot;Selikoff&quot;</span><span class="p">,</span>
+    <span class="nx">fullName</span><span class="o">:</span> <span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
+        <span class="k">return</span> <span class="k">this</span><span class="p">.</span><span class="nx">firstName</span> <span class="o">+</span> <span class="s1">&#39; &#39;</span> <span class="o">+</span> <span class="k">this</span><span class="p">.</span><span class="nx">lastName</span><span class="p">;</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+</code></pre></div>
+<p>This is known as an object literal. But you probably are interested in writing constructors because you plan on making many objects. Object literals won&#39;t help you there - but they do have plenty of uses, including storing configuration settings or raw data, or reducing the number of globals in your library.</p>
+
+<h2>Summary</h2>
+
+<p>The takeaway is that there are many ways to create objects in Javascript, each with its own costs and benefits. It&#39;s good to know the kinds of things these patterns let you accomplish, and how other developers have used them, so you can decide for yourself when a technique is appropriate in your own work.</p>
+
+<p>Here&#39;s a recap of what we discussed. Hopefully the next time you need to make some objects, you&#39;ll be better equipped to choose the appropriate method:</p>
+
+<ul>
+<li><p><strong>Prototypes</strong> let you share public methods across objects. (They also let you use inheritance).</p></li>
+<li><p><strong>Closures</strong> let you have private properties and methods. They are often used in libraries. (Closures are part of a larger pattern called the Module pattern).</p></li>
+<li><p><strong>Custom constructors</strong> can be useful when building specialized APIs.</p></li>
+<li><p><strong>Object literals</strong> are often used to store and pass around isolated chunks of data, like configuration settings or the parameters to an AJAX request. They can also help reduce the number of globals in your code.</p></li>
+</ul>
+
+<h2>Learn more</h2>
+
+<ul>
+<li><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Working_with_Objects">Mozilla: Working with Objects</a> </li>
+<li><a href="http://stackoverflow.com/a/3658673/1406664">A great SO answer on the <code>new</code> keyword</a></li>
+<li><a href="http://yehudakatz.com/2011/08/12/understanding-prototypes-in-javascript/">Yehuda Katz: Understanding prototypes in Javascript</a></li>
+<li><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Closures">Mozilla: Closures</a></li>
+<li><a href="http://yuiblog.com/blog/2007/06/12/module-pattern/">Eric Miraglia, a Yahoo engineer, describes the Module pattern</a></li>
+<li><a href="http://bost.ocks.org/mike/chart/">Mike Bostock, the author of D3, suggests using closures to build reusable charts</a></li>
+<li><a href="http://www.crockford.com/javascript/private.html">Douglas Crockford: Private Members in Javascript</a></li>
+</ul>
+
+
+<!-- ---
+layout: writing
+---
+
+<p>As I&#39;ve been writing more and more JavaScript, I&#39;ve learned something about the community: Javascripters like to do things differently. Ask two developers, or look at two different popular open-source projects, and you&#39;ll probably come across two different solutions for doing the same thing, whether it&#39;s as trivial as writing getter/setter methods or as complicated as loading modules. Sometimes I&#39;m able to find a consensus around these solutions, but often I get lost among the alternatives, and find it difficult to determine which is most appropriate for my specific use case.</p>
+
+<p>One example is writing constructors. I&#39;ve come across several ways to do it - but which way is right? Why do some libraries choose one method, and some another? In this post, I&#39;d like to explore some of the techniques I&#39;ve encountered for writing constructor functions, their pros and cons, and when to use them.</p>
+
+<h2>Generic advice - using the <code>new</code> keyword (Mozilla)</h2>
+
+<p>If I had to describe the &#39;standard&#39; constructor pattern I&#39;ve seen, it&#39;s probably this:</p>
+
+<div class="highlight"><pre><code class="javascript"><span class="c1">// The constructor - like a class, but actually, not really</span>
+<span class="kd">function</span> <span class="nx">Person</span><span class="p">(</span><span class="nx">firstName</span><span class="p">,</span> <span class="nx">lastName</span><span class="p">)</span> <span class="p">{</span>
+  <span class="k">this</span><span class="p">.</span><span class="nx">firstName</span> <span class="o">=</span> <span class="nx">firstName</span><span class="p">;</span>
+  <span class="k">this</span><span class="p">.</span><span class="nx">lastName</span> <span class="o">=</span> <span class="nx">lastName</span><span class="p">;</span>
+
+  <span class="k">this</span><span class="p">.</span><span class="nx">fullName</span> <span class="o">=</span> <span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
+    <span class="k">return</span> <span class="k">this</span><span class="p">.</span><span class="nx">firstName</span> <span class="o">+</span> <span class="s1">&#39; &#39;</span> <span class="o">+</span> <span class="k">this</span><span class="p">.</span><span class="nx">lastName</span><span class="p">;</span>
+  <span class="p">};</span>
+<span class="p">}</span>
+
+<span class="c1">// Use it like this:</span>
+<span class="kd">var</span> <span class="nx">sam</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">Person</span><span class="p">(</span><span class="s1">&#39;Sam&#39;</span><span class="p">,</span> <span class="s1">&#39;Selikoff&#39;</span><span class="p">);</span>
+<span class="nx">sam</span><span class="p">.</span><span class="nx">firstName</span><span class="p">;</span>    <span class="c1">// &quot;Sam&quot;</span>
+<span class="nx">sam</span><span class="p">.</span><span class="nx">fullName</span><span class="p">();</span>   <span class="c1">// &quot;Sam Selikoff&quot;</span>
+
+<span class="nx">sam</span><span class="p">.</span><span class="nx">firstName</span> <span class="o">=</span> <span class="s1">&#39;Samuel&#39;</span><span class="p">;</span>
+<span class="nx">sam</span><span class="p">.</span><span class="nx">fullName</span><span class="p">();</span> <span class="c1">// Samuel Selikoff</span>
+</code></pre></div>
+
+<p>This looks a lot like something you&#39;d see in other languages - but don&#39;t get too comfortable. If you instantiate two objects this way, they won&#39;t necessarily always have the same properties and methods. This is because Javascript lets you mutate objects at run-time:</p>
+<div class="highlight"><pre><code class="js language-js" data-lang="js"><span class="c1">// Add a gender property to this instance only</span>
+<span class="nx">sam</span><span class="p">.</span><span class="nx">gender</span> <span class="o">=</span> <span class="s1">&#39;male&#39;</span><span class="p">;</span>
+</code></pre></div>
+<p>You are also able to change existing methods and properties on your objects, and this may lead to behavior you don&#39;t expect. For example, if you changed the <code>fullName</code> method on a single object, those changes wouldn&#39;t be shared across other objects. This is because the <code>fullName</code> method is an anonymous function that&#39;s attached directly to an instance variable. Each object will get its own copy of the function.</p>
+
+<p>If you wanted the function to be shared across all <code>Person</code> objects, you could do it like this:</p>
+<div class="highlight"><pre><code class="js language-js" data-lang="js"><span class="kd">function</span> <span class="nx">Person</span><span class="p">(</span><span class="nx">firstName</span><span class="p">,</span> <span class="nx">lastName</span><span class="p">)</span> <span class="p">{</span>
+  <span class="k">this</span><span class="p">.</span><span class="nx">firstName</span> <span class="o">=</span> <span class="nx">firstName</span><span class="p">;</span>
+  <span class="k">this</span><span class="p">.</span><span class="nx">lastName</span> <span class="o">=</span> <span class="nx">lastName</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="nx">Person</span><span class="p">.</span><span class="nx">prototype</span><span class="p">.</span><span class="nx">fullName</span> <span class="o">=</span> <span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
+  <span class="k">return</span> <span class="k">this</span><span class="p">.</span><span class="nx">firstName</span> <span class="o">+</span> <span class="s1">&#39; &#39;</span> <span class="o">+</span> <span class="k">this</span><span class="p">.</span><span class="nx">lastName</span><span class="p">;</span>
+<span class="p">};</span>
+</code></pre></div>
+<p>This constructor shares the <code>fullName</code> method across all instances. But how does it work?</p>
+
+<h2>Some Javascript eccentricities</h2>
+
+<p>Whenever we create objects using the <code>new</code> keyword (as we&#39;ve been doing), those objects get a special reference to the <code>Person.prototype</code> dictionary. (In Javascript, dictionaries are synonymous with objects, but I&#39;m using the term here to describe objects that are used mainly as key-value references). Prototypes in Javascript give objects a chain of dictionaries used to look up methods. This means that if we call a method on an object, but that method isn&#39;t defined directly on the object, Javscript will look for the method in the next level of the object&#39;s <em>prototype chain</em>. If it finds it, it will invoke the method; if not, it will keep looking up the chain.</p>
+
+<p>In our first example, we didn&#39;t define a prototype on the <code>Person</code> constructor, so all instances of <code>Person</code> had prototype chains that were only one level deep, so to speak; that is, they only contained the default <code>Object.prototype</code> dictionary. This dictionary contains methods that all objects tend to have in other languages - <code>toString</code>, for instance.</p>
+
+<p>In our second example, we explicitly created a dictionary on the <code>prototype</code> property of the constructor. The <code>new</code> keyword is aware of this property: it is designed to check if there&#39;s a dictionary at <code>.prototype</code>, and if there is, it adds it to the prototype chain of the object it&#39;s currently instantiating. This means that when we call <code>sam.fullName()</code>, Javascript first looks (unsuccessfully) for the method directly on the <code>sam</code> instance, and then moves on to the next level of <code>sam</code>&#39;s prototype chain, which is the dictionary we created. Because that dictionary <em>does</em> have the <code>fullName</code> method, that method gets invoked. And because all objects that get instantiated from the <code>Person</code> constructor have a reference to the same prototype dictionary, they all refer to the same method. So this is how we can share methods across objects.</p>
+
+<p>Before moving on to the next pattern, we should cover our use of the <code>this</code> keyword. I&#39;m sure you&#39;ve come across many JavaScript posts outlining the dangers of being ignorant of <code>this</code>. We use it in the above construct - so what do we need to be careful of?</p>
+
+<p>First, a brief overview. <code>this</code> is a keyword that&#39;s available in every Javascript function. It&#39;s really just a pointer. But what does it point to? <strong>The <code>this</code> keyword points to the object that&#39;s invoking the current function.</strong></p>
+
+<p>So, the <code>this</code> keyword is really just a pointer to an object. But the <code>new</code> keyword does something nice for us: it tells <code>this</code> to point to the object that&#39;s being instantiated. In this example from above,</p>
+<div class="highlight"><pre><code class="js language-js" data-lang="js"><span class="kd">var</span> <span class="nx">sam</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">Person</span><span class="p">(</span><span class="s1">&#39;Sam&#39;</span><span class="p">,</span> <span class="s1">&#39;Selikoff&#39;</span><span class="p">);</span>
+</code></pre></div>
+<p><code>this</code> pointed to <code>sam</code> whenever it was used inside the <code>Person</code> constructor function. If we hadn&#39;t used <code>new</code>, though, <code>this</code> would have referred to the global object, since that was the object executing the constructor function. For example:</p>
+<div class="highlight"><pre><code class="js language-js" data-lang="js"><span class="kd">var</span> <span class="nx">george</span> <span class="o">=</span> <span class="nx">Person</span><span class="p">(</span><span class="s1">&#39;George&#39;</span><span class="p">,</span> <span class="s1">&#39;Foreman&#39;</span><span class="p">);</span> <span class="c1">// forgot &#39;new&#39;</span>
+<span class="nx">george</span><span class="p">;</span> <span class="c1">// undefined</span>
+</code></pre></div>
+<p>Poor <code>george</code> is undefined! This is because when <code>Person</code> was invoked, <code>this</code> referred to the global object. That means these two lines within our constructor function</p>
+<div class="highlight"><pre><code class="js language-js" data-lang="js"><span class="k">this</span><span class="p">.</span><span class="nx">firstName</span> <span class="o">=</span> <span class="nx">firstName</span><span class="p">;</span>
+<span class="k">this</span><span class="p">.</span><span class="nx">lastName</span> <span class="o">=</span> <span class="nx">lastName</span><span class="p">;</span>
+</code></pre></div>
+<p>really just created two new global variables, <code>firstName</code> and <code>lastName</code>. When <code>Person</code> finished executing, it returned <code>undefined</code> (which happened by default, since it didn&#39;t return anything). So <code>george</code> is undefined, and you&#39;ve got two new globals - most certainly not what you intended!</p>
+
+<p>Therefore, it&#39;s important to remember to use the <code>new</code> keyword when using this pattern. Typically, constructors are capitalized (and instances lower-cased) to remind developers of this rule.</p>
+
+<h2>Closures with getter-setters (D3.js, jQuery)</h2>
+
+<p>We just saw that when using the above pattern, you need to manage the context of <code>this</code> by using the <code>new</code> keyword. If this troubles you, there is another technique which avoids <code>this</code> altogether.</p>
+
+<p>Here&#39;s an example of how it&#39;s used:</p>
+<div class="highlight"><pre><code class="js language-js" data-lang="js"><span class="kd">function</span> <span class="nx">Person</span><span class="p">(</span><span class="nx">firstName</span><span class="p">,</span> <span class="nx">lastName</span><span class="p">)</span> <span class="p">{</span>
+  <span class="kd">var</span> <span class="nx">_firstName</span> <span class="o">=</span> <span class="nx">firstName</span><span class="p">,</span>
+      <span class="nx">_lastName</span> <span class="o">=</span> <span class="nx">lastName</span><span class="p">;</span>
+
+  <span class="kd">var</span> <span class="nx">my</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="nx">firstName</span><span class="o">:</span> <span class="nx">_firstName</span><span class="p">,</span>
+    <span class="nx">lastName</span><span class="o">:</span> <span class="nx">_lastName</span>
+  <span class="p">};</span>
+
+  <span class="nx">my</span><span class="p">.</span><span class="nx">fullName</span> <span class="o">=</span> <span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
+    <span class="k">return</span> <span class="nx">_firstName</span> <span class="o">+</span> <span class="s1">&#39; &#39;</span> <span class="o">+</span> <span class="nx">_lastName</span><span class="p">;</span>
+  <span class="p">};</span>
+
+  <span class="c1">// Getter/setters</span>
+  <span class="nx">my</span><span class="p">.</span><span class="nx">firstName</span> <span class="o">=</span> <span class="kd">function</span><span class="p">(</span><span class="nx">value</span><span class="p">)</span> <span class="p">{</span>
+    <span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="nx">arguments</span><span class="p">.</span><span class="nx">length</span><span class="p">)</span> <span class="k">return</span> <span class="nx">_firstName</span><span class="p">;</span>
+    <span class="nx">_firstName</span> <span class="o">=</span> <span class="nx">value</span><span class="p">;</span>
+
+    <span class="k">return</span> <span class="nx">my</span><span class="p">;</span>
+  <span class="p">};</span>
+
+  <span class="nx">my</span><span class="p">.</span><span class="nx">lastName</span> <span class="o">=</span> <span class="kd">function</span><span class="p">(</span><span class="nx">value</span><span class="p">)</span> <span class="p">{</span>
+    <span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="nx">arguments</span><span class="p">.</span><span class="nx">length</span><span class="p">)</span> <span class="k">return</span> <span class="nx">_lastName</span><span class="p">;</span>
+    <span class="nx">_lastName</span> <span class="o">=</span> <span class="nx">value</span><span class="p">;</span>
+
+    <span class="k">return</span> <span class="nx">my</span><span class="p">;</span>
+  <span class="p">};</span>
+
+  <span class="k">return</span> <span class="nx">my</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="c1">// Use it like this:</span>
+<span class="kd">var</span> <span class="nx">mark</span> <span class="o">=</span> <span class="nx">Person</span><span class="p">(</span><span class="s1">&#39;Mark&#39;</span><span class="p">,</span> <span class="s1">&#39;Twain&#39;</span><span class="p">);</span> <span class="c1">// note: no `new` keyword!</span>
+
+<span class="nx">mark</span><span class="p">.</span><span class="nx">firstName</span><span class="p">(</span><span class="s1">&#39;Samuel&#39;</span><span class="p">);</span>
+<span class="nx">mark</span><span class="p">.</span><span class="nx">lastName</span><span class="p">(</span><span class="s1">&#39;Clemens&#39;</span><span class="p">);</span>
+
+<span class="nx">mark</span><span class="p">.</span><span class="nx">fullName</span><span class="p">();</span> <span class="c1">// Samuel Clemens</span>
+</code></pre></div>
+<p>I was confused about this pattern when I first encountered it; the first pattern seems much more intuitive and familiar. But notice that since we never use <code>this</code>, we simply don&#39;t have to worry about managing its context. No matter where we call <code>mark.fullName()</code>, or <code>mark.firstName(&#39;Mark&#39;)</code>, the instance variables we&#39;re manipulating (<code>_firstName</code> and <code>_lastName</code>) will be the correct ones.</p>
+
+<p>It turns out that the biggest benefit of this technique has nothing to do with <code>this</code>, though. Rather, it&#39;s the ability to give your objects private properties and methods. In the example above, as you may have guessed, <code>_firstName</code> and <code>_lastName</code> are not publically accessible:</p>
+<div class="highlight"><pre><code class="js language-js" data-lang="js"><span class="nx">mark</span><span class="p">.</span><span class="nx">_firstName</span><span class="p">;</span>
+<span class="c1">// undefined</span>
+</code></pre></div>
+<p>How does this work?</p>
+
+<p>Typically, when a function finishes executing, the variables declared within that function fall out of scope and get destroyed. But there&#39;s an exception: if any code outside the function holds a reference to these variables after the function finishes executing, they won&#39;t be cleaned up. Instead, a closure will be formed, and those variables will remain in memory.</p>
+
+<p>In the example above, since the <code>Person</code> constructor function returns the inner object <code>my</code>, and since <code>my</code> refers to the local variables <code>_firstName</code> and <code>_lastName</code> (both in the getter/setters and in the <code>fullName</code> method), the variables are not destroyed. When the getter/setters are invoked, they are operating on those same local variables. </p>
+
+<p>But why do this? Why go through this bizarre set of steps just to create what are essentially instance variables on an object - something we already know how to do? The difference between the local variables that the closure has access to and the instance variables on the objects we made earlier is that <em>the outside world does not have direct access to the local variables</em>.</p>
+
+<p>In the objects from our first pattern, anybody with a reference to the <code>sam</code> object could change the <code>firstName</code> property to anything he pleases: </p>
+<div class="highlight"><pre><code class="js language-js" data-lang="js"><span class="nx">sam</span><span class="p">.</span><span class="nx">firstName</span> <span class="o">=</span> <span class="s1">&#39;Peter&#39;</span><span class="p">;</span>
+</code></pre></div>
+<p>But the only way to access the variables using the current technique are through the getter/setter methods that we attached to <code>my</code>. By attaching those methods to <code>my</code>, we made them public; but the local variables themselves remain private. We can now add validation and other logic to our getter/setters, giving us more control over our object&#39;s interfaces.</p>
+
+<p>So we see that closures with getter/setters give us the ability to have private properties and methods, a feature of OOP we&#39;ve come to expect from other languages.</p>
+
+<h2>The best of both worlds?</h2>
+
+<p>As we&#39;ve seen, prototypes (from the first pattern) give us method sharing, and closures (from the second pattern) give us private properties. A natural follow-up question is: can we have both?</p>
+
+<p>It turns out the that there&#39;s no way for shared methods that live on the constructor&#39;s prototype to access the object&#39;s hidden, private properties. This means that you effectively have to choose one or the other. But which one should you choose, and why?</p>
+
+<p>If performance is crucial - for example, if you plan on making thousands of objects - you&#39;ll want to go with prototypes and shared methods. Removing redundant copies of methods is going to be a suggestion that any consultant or book on performance will make.</p>
+
+<p>On the other hand, if the object you&#39;re making is large and complex, and is designed mainly for public consumption, the flexibility that comes with having private properties and methods will probably win out, and you&#39;ll want to take advantage of closures. This is why libraries like jQuery and D3 tend to use closures: users will almost certainly only be using one instance of the library, which means that method sharing becomes less of an issue.</p>
+
+<p>As a clarifying note, you can certainly use prototypes and closures on the same object. But only the closures - which are <em>not</em> shared across instances - will have access to your object&#39;s private variables. The shared methods on the object&#39;s prototype will not.</p>
+
+<h2>Custom constructors (Ember.js, Backbone.js, etc.)</h2>
+
+<p>Sometimes when making objects within a framework or library, you&#39;ll avoid native Javascript constructors altogether. This allows the library to have more control over the objects in your application.</p>
+
+<p>In Ember, for example, you define objects by extending the base <code>Ember.Object</code> object, and then calling the <code>create</code> method on that object. You set properties by passing them into the constructor.</p>
+
+<p>Here&#39;s how it works:</p>
+<div class="highlight"><pre><code class="js language-js" data-lang="js"><span class="nx">Person</span> <span class="o">=</span> <span class="nx">Ember</span><span class="p">.</span><span class="nb">Object</span><span class="p">.</span><span class="nx">extend</span><span class="p">({</span>
+  <span class="nx">fullName</span><span class="o">:</span> <span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
+    <span class="k">return</span> <span class="k">this</span><span class="p">.</span><span class="nx">get</span><span class="p">(</span><span class="s1">&#39;firstName&#39;</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39; &#39;</span> <span class="o">+</span> <span class="k">this</span><span class="p">.</span><span class="nx">get</span><span class="p">(</span><span class="s1">&#39;lastName&#39;</span><span class="p">);</span>
+  <span class="p">}</span>
+<span class="p">});</span>
+
+<span class="kd">var</span> <span class="nx">tim</span> <span class="o">=</span> <span class="nx">Person</span><span class="p">.</span><span class="nx">create</span><span class="p">({</span>
+  <span class="nx">firstName</span><span class="o">:</span> <span class="s2">&quot;Tim&quot;</span><span class="p">,</span>
+  <span class="nx">lastName</span><span class="o">:</span> <span class="s2">&quot;Tebow&quot;</span>
+<span class="p">});</span>
+
+<span class="nx">tim</span><span class="p">.</span><span class="nx">fullName</span><span class="p">();</span>
+<span class="c1">// Tim Tebow</span>
+</code></pre></div>
+<p>Custom methods like this may feel unnecessary or cumbersome, but they give a lot of power to library authors.</p>
+
+<p>For example, one of Ember&#39;s core features is its data bindings system, which requires that each object in an application have the ability to observe the properties of other objects. By giving developers a custom constructor function, Ember can implement this functionality in a consistent and controlled way, without requiring developers to write additional code just to mix in the behavior. So in this case, the custom constructor simplifies use of the framework for Ember developers. Underneath the hood, these custom constructors are simply wrappers around one of the two methods we covered.</p>
+
+<p>So depending on what you&#39;re designing and who you&#39;re designing it for, a custom constructor function may be the way to go.</p>
+
+<h2>No constructor, a.k.a. the object literal</h2>
+
+<p>Of course, you can always create an object using no constructor at all:</p>
+<div class="highlight"><pre><code class="js language-js" data-lang="js"><span class="kd">var</span> <span class="nx">sam</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="nx">firstName</span><span class="o">:</span> <span class="s2">&quot;Sam&quot;</span><span class="p">,</span>
+    <span class="nx">lastName</span><span class="o">:</span> <span class="s2">&quot;Selikoff&quot;</span><span class="p">,</span>
+    <span class="nx">fullName</span><span class="o">:</span> <span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
+        <span class="k">return</span> <span class="k">this</span><span class="p">.</span><span class="nx">firstName</span> <span class="o">+</span> <span class="s1">&#39; &#39;</span> <span class="o">+</span> <span class="k">this</span><span class="p">.</span><span class="nx">lastName</span><span class="p">;</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+</code></pre></div>
+<p>This is known as an object literal. But you probably are interested in writing constructors because you plan on making many objects. Object literals won&#39;t help you there - but they do have plenty of uses, including storing configuration settings or raw data, or reducing the number of globals in your library.</p>
+
+<h2>Summary</h2>
+
+<p>The takeaway is that there are many ways to create objects in Javascript, each with its own costs and benefits. It&#39;s good to know the kinds of things these patterns let you accomplish, and how other developers have used them, so you can decide for yourself when a technique is appropriate in your own work.</p>
+
+<p>Here&#39;s a recap of what we discussed. Hopefully the next time you need to make some objects, you&#39;ll be better equipped to choose the appropriate method:</p>
+
+<ul>
+<li><p><strong>Prototypes</strong> let you share public methods across objects. (They also let you use inheritance).</p></li>
+<li><p><strong>Closures</strong> let you have private properties and methods. They are often used in libraries. (Closures are part of a larger pattern called the Module pattern).</p></li>
+<li><p><strong>Custom constructors</strong> can be useful when building specialized APIs.</p></li>
+<li><p><strong>Object literals</strong> are often used to store and pass around isolated chunks of data, like configuration settings or the parameters to an AJAX request. They can also help reduce the number of globals in your code.</p></li>
+</ul>
+
+<h2>Learn more</h2>
+
+<ul>
+<li><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Working_with_Objects">Mozilla: Working with Objects</a> </li>
+<li><a href="http://stackoverflow.com/a/3658673/1406664">A great SO answer on the <code>new</code> keyword</a></li>
+<li><a href="http://yehudakatz.com/2011/08/12/understanding-prototypes-in-javascript/">Yehuda Katz: Understanding prototypes in Javascript</a></li>
+<li><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Closures">Mozilla: Closures</a></li>
+<li><a href="http://yuiblog.com/blog/2007/06/12/module-pattern/">Eric Miraglia, a Yahoo engineer, describes the Module pattern</a></li>
+<li><a href="http://bost.ocks.org/mike/chart/">Mike Bostock, the author of D3, suggests using closures to build reusable charts</a></li>
+<li><a href="http://www.crockford.com/javascript/private.html">Douglas Crockford: Private Members in Javascript</a></li>
+</ul>
+
+<div id="post" class="reading">
+	<article>
+		<header class="page-header">
+  		<h1 class="title">Some Javascript constructor patterns, and when to use them</h3>
+			<p class="byline">November 14, 2013 &#183; javascript</p>
+		</header>
+		<section>
+			<p>As I&#39;ve been writing more and more JavaScript, I&#39;ve learned something about the community: Javascripters like to do things differently. Ask two developers, or look at two different popular open-source projects, and you&#39;ll probably come across two different solutions for doing the same thing, whether it&#39;s as trivial as writing getter/setter methods or as complicated as loading modules. Sometimes I&#39;m able to find a consensus around these solutions, but often I get lost among the alternatives, and find it difficult to determine which is most appropriate for my specific use case.</p>
+
+<p>One example is writing constructors. I&#39;ve come across several ways to do it - but which way is right? Why do some libraries choose one method, and some another? In this post, I&#39;d like to explore some of the techniques I&#39;ve encountered for writing constructor functions, their pros and cons, and when to use them.</p>
+
+<h2>Generic advice - using the <code>new</code> keyword (Mozilla)</h2>
+
+<p>If I had to describe the &#39;standard&#39; constructor pattern I&#39;ve seen, it&#39;s probably this:</p>
+
+<div class="highlight"><pre><code class="javascript"><span class="c1">// The constructor - like a class, but actually, not really</span>
+<span class="kd">function</span> <span class="nx">Person</span><span class="p">(</span><span class="nx">firstName</span><span class="p">,</span> <span class="nx">lastName</span><span class="p">)</span> <span class="p">{</span>
+  <span class="k">this</span><span class="p">.</span><span class="nx">firstName</span> <span class="o">=</span> <span class="nx">firstName</span><span class="p">;</span>
+  <span class="k">this</span><span class="p">.</span><span class="nx">lastName</span> <span class="o">=</span> <span class="nx">lastName</span><span class="p">;</span>
+
+  <span class="k">this</span><span class="p">.</span><span class="nx">fullName</span> <span class="o">=</span> <span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
+    <span class="k">return</span> <span class="k">this</span><span class="p">.</span><span class="nx">firstName</span> <span class="o">+</span> <span class="s1">&#39; &#39;</span> <span class="o">+</span> <span class="k">this</span><span class="p">.</span><span class="nx">lastName</span><span class="p">;</span>
+  <span class="p">};</span>
+<span class="p">}</span>
+
+<span class="c1">// Use it like this:</span>
+<span class="kd">var</span> <span class="nx">sam</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">Person</span><span class="p">(</span><span class="s1">&#39;Sam&#39;</span><span class="p">,</span> <span class="s1">&#39;Selikoff&#39;</span><span class="p">);</span>
+<span class="nx">sam</span><span class="p">.</span><span class="nx">firstName</span><span class="p">;</span>    <span class="c1">// &quot;Sam&quot;</span>
+<span class="nx">sam</span><span class="p">.</span><span class="nx">fullName</span><span class="p">();</span>   <span class="c1">// &quot;Sam Selikoff&quot;</span>
+
+<span class="nx">sam</span><span class="p">.</span><span class="nx">firstName</span> <span class="o">=</span> <span class="s1">&#39;Samuel&#39;</span><span class="p">;</span>
+<span class="nx">sam</span><span class="p">.</span><span class="nx">fullName</span><span class="p">();</span> <span class="c1">// Samuel Selikoff</span>
+</code></pre></div>
+
+<p>This looks a lot like something you&#39;d see in other languages - but don&#39;t get too comfortable. If you instantiate two objects this way, they won&#39;t necessarily always have the same properties and methods. This is because Javascript lets you mutate objects at run-time:</p>
+<div class="highlight"><pre><code class="js language-js" data-lang="js"><span class="c1">// Add a gender property to this instance only</span>
+<span class="nx">sam</span><span class="p">.</span><span class="nx">gender</span> <span class="o">=</span> <span class="s1">&#39;male&#39;</span><span class="p">;</span>
+</code></pre></div>
+<p>You are also able to change existing methods and properties on your objects, and this may lead to behavior you don&#39;t expect. For example, if you changed the <code>fullName</code> method on a single object, those changes wouldn&#39;t be shared across other objects. This is because the <code>fullName</code> method is an anonymous function that&#39;s attached directly to an instance variable. Each object will get its own copy of the function.</p>
+
+<p>If you wanted the function to be shared across all <code>Person</code> objects, you could do it like this:</p>
+<div class="highlight"><pre><code class="js language-js" data-lang="js"><span class="kd">function</span> <span class="nx">Person</span><span class="p">(</span><span class="nx">firstName</span><span class="p">,</span> <span class="nx">lastName</span><span class="p">)</span> <span class="p">{</span>
+  <span class="k">this</span><span class="p">.</span><span class="nx">firstName</span> <span class="o">=</span> <span class="nx">firstName</span><span class="p">;</span>
+  <span class="k">this</span><span class="p">.</span><span class="nx">lastName</span> <span class="o">=</span> <span class="nx">lastName</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="nx">Person</span><span class="p">.</span><span class="nx">prototype</span><span class="p">.</span><span class="nx">fullName</span> <span class="o">=</span> <span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
+  <span class="k">return</span> <span class="k">this</span><span class="p">.</span><span class="nx">firstName</span> <span class="o">+</span> <span class="s1">&#39; &#39;</span> <span class="o">+</span> <span class="k">this</span><span class="p">.</span><span class="nx">lastName</span><span class="p">;</span>
+<span class="p">};</span>
+</code></pre></div>
+<p>This constructor shares the <code>fullName</code> method across all instances. But how does it work?</p>
+
+<h2>Some Javascript eccentricities</h2>
+
+<p>Whenever we create objects using the <code>new</code> keyword (as we&#39;ve been doing), those objects get a special reference to the <code>Person.prototype</code> dictionary. (In Javascript, dictionaries are synonymous with objects, but I&#39;m using the term here to describe objects that are used mainly as key-value references). Prototypes in Javascript give objects a chain of dictionaries used to look up methods. This means that if we call a method on an object, but that method isn&#39;t defined directly on the object, Javscript will look for the method in the next level of the object&#39;s <em>prototype chain</em>. If it finds it, it will invoke the method; if not, it will keep looking up the chain.</p>
+
+<p>In our first example, we didn&#39;t define a prototype on the <code>Person</code> constructor, so all instances of <code>Person</code> had prototype chains that were only one level deep, so to speak; that is, they only contained the default <code>Object.prototype</code> dictionary. This dictionary contains methods that all objects tend to have in other languages - <code>toString</code>, for instance.</p>
+
+<p>In our second example, we explicitly created a dictionary on the <code>prototype</code> property of the constructor. The <code>new</code> keyword is aware of this property: it is designed to check if there&#39;s a dictionary at <code>.prototype</code>, and if there is, it adds it to the prototype chain of the object it&#39;s currently instantiating. This means that when we call <code>sam.fullName()</code>, Javascript first looks (unsuccessfully) for the method directly on the <code>sam</code> instance, and then moves on to the next level of <code>sam</code>&#39;s prototype chain, which is the dictionary we created. Because that dictionary <em>does</em> have the <code>fullName</code> method, that method gets invoked. And because all objects that get instantiated from the <code>Person</code> constructor have a reference to the same prototype dictionary, they all refer to the same method. So this is how we can share methods across objects.</p>
+
+<p>Before moving on to the next pattern, we should cover our use of the <code>this</code> keyword. I&#39;m sure you&#39;ve come across many JavaScript posts outlining the dangers of being ignorant of <code>this</code>. We use it in the above construct - so what do we need to be careful of?</p>
+
+<p>First, a brief overview. <code>this</code> is a keyword that&#39;s available in every Javascript function. It&#39;s really just a pointer. But what does it point to? <strong>The <code>this</code> keyword points to the object that&#39;s invoking the current function.</strong></p>
+
+<p>So, the <code>this</code> keyword is really just a pointer to an object. But the <code>new</code> keyword does something nice for us: it tells <code>this</code> to point to the object that&#39;s being instantiated. In this example from above,</p>
+<div class="highlight"><pre><code class="js language-js" data-lang="js"><span class="kd">var</span> <span class="nx">sam</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">Person</span><span class="p">(</span><span class="s1">&#39;Sam&#39;</span><span class="p">,</span> <span class="s1">&#39;Selikoff&#39;</span><span class="p">);</span>
+</code></pre></div>
+<p><code>this</code> pointed to <code>sam</code> whenever it was used inside the <code>Person</code> constructor function. If we hadn&#39;t used <code>new</code>, though, <code>this</code> would have referred to the global object, since that was the object executing the constructor function. For example:</p>
+<div class="highlight"><pre><code class="js language-js" data-lang="js"><span class="kd">var</span> <span class="nx">george</span> <span class="o">=</span> <span class="nx">Person</span><span class="p">(</span><span class="s1">&#39;George&#39;</span><span class="p">,</span> <span class="s1">&#39;Foreman&#39;</span><span class="p">);</span> <span class="c1">// forgot &#39;new&#39;</span>
+<span class="nx">george</span><span class="p">;</span> <span class="c1">// undefined</span>
+</code></pre></div>
+<p>Poor <code>george</code> is undefined! This is because when <code>Person</code> was invoked, <code>this</code> referred to the global object. That means these two lines within our constructor function</p>
+<div class="highlight"><pre><code class="js language-js" data-lang="js"><span class="k">this</span><span class="p">.</span><span class="nx">firstName</span> <span class="o">=</span> <span class="nx">firstName</span><span class="p">;</span>
+<span class="k">this</span><span class="p">.</span><span class="nx">lastName</span> <span class="o">=</span> <span class="nx">lastName</span><span class="p">;</span>
+</code></pre></div>
+<p>really just created two new global variables, <code>firstName</code> and <code>lastName</code>. When <code>Person</code> finished executing, it returned <code>undefined</code> (which happened by default, since it didn&#39;t return anything). So <code>george</code> is undefined, and you&#39;ve got two new globals - most certainly not what you intended!</p>
+
+<p>Therefore, it&#39;s important to remember to use the <code>new</code> keyword when using this pattern. Typically, constructors are capitalized (and instances lower-cased) to remind developers of this rule.</p>
+
+<h2>Closures with getter-setters (D3.js, jQuery)</h2>
+
+<p>We just saw that when using the above pattern, you need to manage the context of <code>this</code> by using the <code>new</code> keyword. If this troubles you, there is another technique which avoids <code>this</code> altogether.</p>
+
+<p>Here&#39;s an example of how it&#39;s used:</p>
+<div class="highlight"><pre><code class="js language-js" data-lang="js"><span class="kd">function</span> <span class="nx">Person</span><span class="p">(</span><span class="nx">firstName</span><span class="p">,</span> <span class="nx">lastName</span><span class="p">)</span> <span class="p">{</span>
+  <span class="kd">var</span> <span class="nx">_firstName</span> <span class="o">=</span> <span class="nx">firstName</span><span class="p">,</span>
+      <span class="nx">_lastName</span> <span class="o">=</span> <span class="nx">lastName</span><span class="p">;</span>
+
+  <span class="kd">var</span> <span class="nx">my</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="nx">firstName</span><span class="o">:</span> <span class="nx">_firstName</span><span class="p">,</span>
+    <span class="nx">lastName</span><span class="o">:</span> <span class="nx">_lastName</span>
+  <span class="p">};</span>
+
+  <span class="nx">my</span><span class="p">.</span><span class="nx">fullName</span> <span class="o">=</span> <span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
+    <span class="k">return</span> <span class="nx">_firstName</span> <span class="o">+</span> <span class="s1">&#39; &#39;</span> <span class="o">+</span> <span class="nx">_lastName</span><span class="p">;</span>
+  <span class="p">};</span>
+
+  <span class="c1">// Getter/setters</span>
+  <span class="nx">my</span><span class="p">.</span><span class="nx">firstName</span> <span class="o">=</span> <span class="kd">function</span><span class="p">(</span><span class="nx">value</span><span class="p">)</span> <span class="p">{</span>
+    <span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="nx">arguments</span><span class="p">.</span><span class="nx">length</span><span class="p">)</span> <span class="k">return</span> <span class="nx">_firstName</span><span class="p">;</span>
+    <span class="nx">_firstName</span> <span class="o">=</span> <span class="nx">value</span><span class="p">;</span>
+
+    <span class="k">return</span> <span class="nx">my</span><span class="p">;</span>
+  <span class="p">};</span>
+
+  <span class="nx">my</span><span class="p">.</span><span class="nx">lastName</span> <span class="o">=</span> <span class="kd">function</span><span class="p">(</span><span class="nx">value</span><span class="p">)</span> <span class="p">{</span>
+    <span class="k">if</span> <span class="p">(</span><span class="o">!</span><span class="nx">arguments</span><span class="p">.</span><span class="nx">length</span><span class="p">)</span> <span class="k">return</span> <span class="nx">_lastName</span><span class="p">;</span>
+    <span class="nx">_lastName</span> <span class="o">=</span> <span class="nx">value</span><span class="p">;</span>
+
+    <span class="k">return</span> <span class="nx">my</span><span class="p">;</span>
+  <span class="p">};</span>
+
+  <span class="k">return</span> <span class="nx">my</span><span class="p">;</span>
+<span class="p">}</span>
+
+<span class="c1">// Use it like this:</span>
+<span class="kd">var</span> <span class="nx">mark</span> <span class="o">=</span> <span class="nx">Person</span><span class="p">(</span><span class="s1">&#39;Mark&#39;</span><span class="p">,</span> <span class="s1">&#39;Twain&#39;</span><span class="p">);</span> <span class="c1">// note: no `new` keyword!</span>
+
+<span class="nx">mark</span><span class="p">.</span><span class="nx">firstName</span><span class="p">(</span><span class="s1">&#39;Samuel&#39;</span><span class="p">);</span>
+<span class="nx">mark</span><span class="p">.</span><span class="nx">lastName</span><span class="p">(</span><span class="s1">&#39;Clemens&#39;</span><span class="p">);</span>
+
+<span class="nx">mark</span><span class="p">.</span><span class="nx">fullName</span><span class="p">();</span> <span class="c1">// Samuel Clemens</span>
+</code></pre></div>
+<p>I was confused about this pattern when I first encountered it; the first pattern seems much more intuitive and familiar. But notice that since we never use <code>this</code>, we simply don&#39;t have to worry about managing its context. No matter where we call <code>mark.fullName()</code>, or <code>mark.firstName(&#39;Mark&#39;)</code>, the instance variables we&#39;re manipulating (<code>_firstName</code> and <code>_lastName</code>) will be the correct ones.</p>
+
+<p>It turns out that the biggest benefit of this technique has nothing to do with <code>this</code>, though. Rather, it&#39;s the ability to give your objects private properties and methods. In the example above, as you may have guessed, <code>_firstName</code> and <code>_lastName</code> are not publically accessible:</p>
+<div class="highlight"><pre><code class="js language-js" data-lang="js"><span class="nx">mark</span><span class="p">.</span><span class="nx">_firstName</span><span class="p">;</span>
+<span class="c1">// undefined</span>
+</code></pre></div>
+<p>How does this work?</p>
+
+<p>Typically, when a function finishes executing, the variables declared within that function fall out of scope and get destroyed. But there&#39;s an exception: if any code outside the function holds a reference to these variables after the function finishes executing, they won&#39;t be cleaned up. Instead, a closure will be formed, and those variables will remain in memory.</p>
+
+<p>In the example above, since the <code>Person</code> constructor function returns the inner object <code>my</code>, and since <code>my</code> refers to the local variables <code>_firstName</code> and <code>_lastName</code> (both in the getter/setters and in the <code>fullName</code> method), the variables are not destroyed. When the getter/setters are invoked, they are operating on those same local variables. </p>
+
+<p>But why do this? Why go through this bizarre set of steps just to create what are essentially instance variables on an object - something we already know how to do? The difference between the local variables that the closure has access to and the instance variables on the objects we made earlier is that <em>the outside world does not have direct access to the local variables</em>.</p>
+
+<p>In the objects from our first pattern, anybody with a reference to the <code>sam</code> object could change the <code>firstName</code> property to anything he pleases: </p>
+<div class="highlight"><pre><code class="js language-js" data-lang="js"><span class="nx">sam</span><span class="p">.</span><span class="nx">firstName</span> <span class="o">=</span> <span class="s1">&#39;Peter&#39;</span><span class="p">;</span>
+</code></pre></div>
+<p>But the only way to access the variables using the current technique are through the getter/setter methods that we attached to <code>my</code>. By attaching those methods to <code>my</code>, we made them public; but the local variables themselves remain private. We can now add validation and other logic to our getter/setters, giving us more control over our object&#39;s interfaces.</p>
+
+<p>So we see that closures with getter/setters give us the ability to have private properties and methods, a feature of OOP we&#39;ve come to expect from other languages.</p>
+
+<h2>The best of both worlds?</h2>
+
+<p>As we&#39;ve seen, prototypes (from the first pattern) give us method sharing, and closures (from the second pattern) give us private properties. A natural follow-up question is: can we have both?</p>
+
+<p>It turns out the that there&#39;s no way for shared methods that live on the constructor&#39;s prototype to access the object&#39;s hidden, private properties. This means that you effectively have to choose one or the other. But which one should you choose, and why?</p>
+
+<p>If performance is crucial - for example, if you plan on making thousands of objects - you&#39;ll want to go with prototypes and shared methods. Removing redundant copies of methods is going to be a suggestion that any consultant or book on performance will make.</p>
+
+<p>On the other hand, if the object you&#39;re making is large and complex, and is designed mainly for public consumption, the flexibility that comes with having private properties and methods will probably win out, and you&#39;ll want to take advantage of closures. This is why libraries like jQuery and D3 tend to use closures: users will almost certainly only be using one instance of the library, which means that method sharing becomes less of an issue.</p>
+
+<p>As a clarifying note, you can certainly use prototypes and closures on the same object. But only the closures - which are <em>not</em> shared across instances - will have access to your object&#39;s private variables. The shared methods on the object&#39;s prototype will not.</p>
+
+<h2>Custom constructors (Ember.js, Backbone.js, etc.)</h2>
+
+<p>Sometimes when making objects within a framework or library, you&#39;ll avoid native Javascript constructors altogether. This allows the library to have more control over the objects in your application.</p>
+
+<p>In Ember, for example, you define objects by extending the base <code>Ember.Object</code> object, and then calling the <code>create</code> method on that object. You set properties by passing them into the constructor.</p>
+
+<p>Here&#39;s how it works:</p>
+<div class="highlight"><pre><code class="js language-js" data-lang="js"><span class="nx">Person</span> <span class="o">=</span> <span class="nx">Ember</span><span class="p">.</span><span class="nb">Object</span><span class="p">.</span><span class="nx">extend</span><span class="p">({</span>
+  <span class="nx">fullName</span><span class="o">:</span> <span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
+    <span class="k">return</span> <span class="k">this</span><span class="p">.</span><span class="nx">get</span><span class="p">(</span><span class="s1">&#39;firstName&#39;</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39; &#39;</span> <span class="o">+</span> <span class="k">this</span><span class="p">.</span><span class="nx">get</span><span class="p">(</span><span class="s1">&#39;lastName&#39;</span><span class="p">);</span>
+  <span class="p">}</span>
+<span class="p">});</span>
+
+<span class="kd">var</span> <span class="nx">tim</span> <span class="o">=</span> <span class="nx">Person</span><span class="p">.</span><span class="nx">create</span><span class="p">({</span>
+  <span class="nx">firstName</span><span class="o">:</span> <span class="s2">&quot;Tim&quot;</span><span class="p">,</span>
+  <span class="nx">lastName</span><span class="o">:</span> <span class="s2">&quot;Tebow&quot;</span>
+<span class="p">});</span>
+
+<span class="nx">tim</span><span class="p">.</span><span class="nx">fullName</span><span class="p">();</span>
+<span class="c1">// Tim Tebow</span>
+</code></pre></div>
+<p>Custom methods like this may feel unnecessary or cumbersome, but they give a lot of power to library authors.</p>
+
+<p>For example, one of Ember&#39;s core features is its data bindings system, which requires that each object in an application have the ability to observe the properties of other objects. By giving developers a custom constructor function, Ember can implement this functionality in a consistent and controlled way, without requiring developers to write additional code just to mix in the behavior. So in this case, the custom constructor simplifies use of the framework for Ember developers. Underneath the hood, these custom constructors are simply wrappers around one of the two methods we covered.</p>
+
+<p>So depending on what you&#39;re designing and who you&#39;re designing it for, a custom constructor function may be the way to go.</p>
+
+<h2>No constructor, a.k.a. the object literal</h2>
+
+<p>Of course, you can always create an object using no constructor at all:</p>
+<div class="highlight"><pre><code class="js language-js" data-lang="js"><span class="kd">var</span> <span class="nx">sam</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="nx">firstName</span><span class="o">:</span> <span class="s2">&quot;Sam&quot;</span><span class="p">,</span>
+    <span class="nx">lastName</span><span class="o">:</span> <span class="s2">&quot;Selikoff&quot;</span><span class="p">,</span>
+    <span class="nx">fullName</span><span class="o">:</span> <span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
+        <span class="k">return</span> <span class="k">this</span><span class="p">.</span><span class="nx">firstName</span> <span class="o">+</span> <span class="s1">&#39; &#39;</span> <span class="o">+</span> <span class="k">this</span><span class="p">.</span><span class="nx">lastName</span><span class="p">;</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+</code></pre></div>
+<p>This is known as an object literal. But you probably are interested in writing constructors because you plan on making many objects. Object literals won&#39;t help you there - but they do have plenty of uses, including storing configuration settings or raw data, or reducing the number of globals in your library.</p>
+
+<h2>Summary</h2>
+
+<p>The takeaway is that there are many ways to create objects in Javascript, each with its own costs and benefits. It&#39;s good to know the kinds of things these patterns let you accomplish, and how other developers have used them, so you can decide for yourself when a technique is appropriate in your own work.</p>
+
+<p>Here&#39;s a recap of what we discussed. Hopefully the next time you need to make some objects, you&#39;ll be better equipped to choose the appropriate method:</p>
+
+<ul>
+<li><p><strong>Prototypes</strong> let you share public methods across objects. (They also let you use inheritance).</p></li>
+<li><p><strong>Closures</strong> let you have private properties and methods. They are often used in libraries. (Closures are part of a larger pattern called the Module pattern).</p></li>
+<li><p><strong>Custom constructors</strong> can be useful when building specialized APIs.</p></li>
+<li><p><strong>Object literals</strong> are often used to store and pass around isolated chunks of data, like configuration settings or the parameters to an AJAX request. They can also help reduce the number of globals in your code.</p></li>
+</ul>
+
+<h2>Learn more</h2>
+
+<ul>
+<li><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Working_with_Objects">Mozilla: Working with Objects</a> </li>
+<li><a href="http://stackoverflow.com/a/3658673/1406664">A great SO answer on the <code>new</code> keyword</a></li>
+<li><a href="http://yehudakatz.com/2011/08/12/understanding-prototypes-in-javascript/">Yehuda Katz: Understanding prototypes in Javascript</a></li>
+<li><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Closures">Mozilla: Closures</a></li>
+<li><a href="http://yuiblog.com/blog/2007/06/12/module-pattern/">Eric Miraglia, a Yahoo engineer, describes the Module pattern</a></li>
+<li><a href="http://bost.ocks.org/mike/chart/">Mike Bostock, the author of D3, suggests using closures to build reusable charts</a></li>
+<li><a href="http://www.crockford.com/javascript/private.html">Douglas Crockford: Private Members in Javascript</a></li>
+</ul>
+
+		</section>
+
+		<hr>	
+
+		<div class="comments">
+		    <div id="disqus_thread"></div>
+		    <script type="text/javascript">
+		        /* * * CONFIGURATION VARIABLES: EDIT BEFORE PASTING INTO YOUR WEBPAGE * * */
+		        var disqus_shortname = 'samselikoff'; // required: replace example with your forum shortname
+
+		        /* * * DON'T EDIT BELOW THIS LINE * * */
+		        (function() {
+		            var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+		            dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+		            (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+		        })();
+		    </script>
+		    <noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+		    <a href="http://disqus.com" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
+		</div>
+	</article>
+</div>
+ -->
+    </article>
+
+    <div class="comments">
+      <div id="disqus_thread"></div>
+      <script type="text/javascript">
+        /* * * CONFIGURATION VARIABLES: EDIT BEFORE PASTING INTO YOUR WEBPAGE * * */
+        var disqus_shortname = 'samselikoff'; // required: replace example with your forum shortname
+
+        /* * * DON'T EDIT BELOW THIS LINE * * */
+        (function() {
+            var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+            dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+            (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+        })();
+      </script>
+      <noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+      <a href="http://disqus.com" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
+    </div>
+    
+  </div>
+
+<!-- 
+  <footer>
+    <p class="copyright muted">&copy; 2013 Sam Selikoff</p>
+  </footer>
+ -->
+</div>
+
+  </body>
+</html>

@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html>
+  <head>
+      <meta charset="utf-8">
+      <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+      <title>Ember and D3: Getting new data within a route</title>
+      <meta name="viewport" content="width=device-width">
+
+      <!-- CSS -->
+      <link rel="stylesheet" href="/css/style.css">
+      <link rel="stylesheet" href="/css/print.css">
+      <link href='http://fonts.googleapis.com/css?family=Italianno' rel='stylesheet' type='text/css'>
+
+      <!-- Fonts -->
+      <link href='http://fonts.googleapis.com/css?family=Lato:100,200,300,400' rel='stylesheet' type='text/css'>
+      <link rel="stylesheet" href="/css/font-awesome-4.0.3/css/font-awesome.min.css">
+
+      <link rel="shortcut icon" href="/images/favicon.ico" type="image/x-icon">
+      <script src="/js/jquery.js"></script>
+      <!--[if lt IE 9]>
+        <script src="/js/vendor/modernizr.js"></script>
+      <![endif]-->
+
+  </head>
+  <body>
+    <script>
+      (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+      (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+      m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+      })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+
+      ga('create', 'UA-42527632-1', 'samselikoff.com');
+      ga('send', 'pageview');
+
+    </script>
+        
+    <div id="blog" class="wrap">
+  
+  <div class="container">
+    <article>
+      <div class="clearfix">
+        <a class="thin back" href="/blog">
+          <i class="fa fa-chevron-left"></i> Back to blog
+        </a>
+
+        <p class="date"><small class="soft">July 28, 2013</small></p>
+      </div>
+
+      <h1>Ember and D3: Getting new data within a route
+        <span class="subtitle thin"></span>
+      </h1>
+
+      <p>When doing datavis, you&#39;ll often want to display new data without changing the route of your appplication. For example, you may want to supplement a time series chart with a baseline render. These types of UI interactions are not meaningful enough to change the URL[^1], but they still may require an additional call to the server.</p>
+
+<p>Ember places a lot of emphasis on routing, so examples of fetching data from the server when switching routes are prevalent. But here, I want to look at fetching data without changing the route. Let&#39;s say part of our <code>IndexRoute</code> has a datepicker, and each time a user selects a month, we want to add some data to an existing chart. </p>
+
+<p>The first thing to remember is that in Ember, controllers can be thought of as data containers. Models act as proxies to your actual data on the server, but when it comes to actually displaying and manipulating data in your Ember app, controllers take center stage. So, to get some new data, the first step is to make a new controller. We&#39;ll use an <code>ArrayController</code> to hold all the months the user has selected:</p>
+
+<div class="highlight"><pre><code class="javascript"><span class="nx">App</span><span class="p">.</span><span class="nx">MonthsController</span> <span class="o">=</span> <span class="nx">Ember</span><span class="p">.</span><span class="nx">ArrayController</span><span class="p">.</span><span class="nx">extend</span><span class="p">({</span>
+<span class="p">});</span>
+</code></pre></div>
+
+<p>This will be the container for our models.</p>
+
+<p>Now, we want to add some models to our controller. Again, because many Ember apps will only need new data upon entering a new route, you&#39;ll come across numerous guides on how to accomplish this that will point you to a controller&#39;s <code>init</code> function, or to the <code>model</code> or <code>setupController</code> hooks within a route. But that&#39;s not what we&#39;re interested in here. These components are part of Ember&#39;s sophisticated routing system, and while they work nicely when changing routes, we&#39;ll have to find another way.</p>
+
+<p>First, let&#39;s model our data:</p>
+
+<div class="highlight"><pre><code class="javascript"><span class="nx">App</span><span class="p">.</span><span class="nx">Month</span> <span class="o">=</span> <span class="nx">DS</span><span class="p">.</span><span class="nx">Model</span><span class="p">.</span><span class="nx">extend</span><span class="p">({</span>
+    <span class="nx">min</span><span class="o">:</span> <span class="nx">DS</span><span class="p">.</span><span class="nx">attr</span><span class="p">(</span><span class="s1">&#39;number&#39;</span><span class="p">),</span>
+    <span class="nx">max</span><span class="o">:</span> <span class="nx">DS</span><span class="p">.</span><span class="nx">attr</span><span class="p">(</span><span class="s1">&#39;number&#39;</span><span class="p">),</span>
+    <span class="p">(</span><span class="nx">other</span> <span class="nx">data</span><span class="p">)</span>
+    <span class="p">...</span>
+<span class="p">});</span>
+</code></pre></div>
+
+<p>How can we get new <code>Month</code> models into our controller? Let&#39;s start with the UI. Usually when dealing with datepickers, you&#39;ll need to write some Javascript. This means we&#39;ll probably need more than just a template to handle our user interactions. Let&#39;s create a view for our datepicker</p>
+
+<div class="highlight"><pre><code class="javascript"><span class="nx">App</span><span class="p">.</span><span class="nx">DatepickerView</span> <span class="o">=</span> <span class="nx">Ember</span><span class="p">.</span><span class="nx">View</span><span class="p">.</span><span class="nx">extend</span><span class="p">({</span>
+    <span class="nx">init</span><span class="o">:</span> <span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
+        <span class="k">this</span><span class="p">.</span><span class="nx">$</span><span class="p">().</span><span class="nx">datepicker</span><span class="p">();</span>
+        <span class="p">...</span>
+    <span class="p">}</span>
+</code></pre></div>
+
+<p>and add it to our <code>IndexRoute</code></p>
+
+<div class="highlight"><pre><code class="html">// index.html
+<span class="nt">&lt;body&gt;</span>
+    <span class="nt">&lt;script </span><span class="na">type=</span><span class="s">&quot;text/x-handlebars&quot;</span> <span class="na">data-template-name=</span><span class="s">&quot;index&quot;</span><span class="nt">&gt;</span>
+        <span class="o">&lt;</span><span class="nx">h1</span><span class="o">&gt;</span><span class="nx">Welcome</span> <span class="nx">to</span> <span class="nx">may</span> <span class="nx">app</span><span class="o">!&lt;</span><span class="err">/h1&gt;</span>
+        <span class="p">...</span>
+        <span class="o">&lt;</span><span class="nx">aside</span><span class="o">&gt;</span>
+            <span class="p">{{</span><span class="nx">view</span> <span class="nx">App</span><span class="p">.</span><span class="nx">DatepickerView</span><span class="p">}}</span>
+        <span class="o">&lt;</span><span class="err">/aside&gt;</span>
+    <span class="nt">&lt;/script&gt;</span>
+    ...
+<span class="nt">&lt;/body&gt;</span>
+</code></pre></div>
+
+<p>Now, when a user clicks a month on our datepicker, we want to fetch some new data. Ultimately, we&#39;ll use the data to rerender our D3 chart - but in this post, I just want to focus on getting the data. If we were transitioning to a new route, we&#39;d use the standard <code>{{linkTo}}</code> helper, and specify our data in the <code>model</code> hook of our route. Here, we&#39;ll have to write some custom methods. </p>
+
+<p>First, we&#39;ll want to handle the click event in our view. The details will vary depending on what datepicker you&#39;re using (or if you&#39;re writing your own), but you&#39;ll probably be able to access the selected date from the datepicker&#39;s api. But what are we going to do with the selected date? The view shouldn&#39;t be responsible for calling the server directly to get the new data - we already have a controller that should be managing that. So that&#39;s what we&#39;ll do - trigger an event that tells the controller to get some new data. First, tell the view to trigger the event:</p>
+
+<div class="highlight"><pre><code class="javascript"><span class="nx">App</span><span class="p">.</span><span class="nx">DatepickerView</span> <span class="o">=</span> <span class="nx">Ember</span><span class="p">.</span><span class="nx">View</span><span class="p">.</span><span class="nx">extend</span><span class="p">({</span>
+    <span class="nx">click</span><span class="o">:</span> <span class="kd">function</span><span class="p">(</span><span class="nx">e</span><span class="p">)</span> <span class="p">{</span>
+        <span class="kd">var</span> <span class="nx">id</span> <span class="o">=</span> <span class="k">this</span><span class="p">.</span><span class="nx">$</span><span class="p">().</span><span class="nx">datepicker</span><span class="p">().</span><span class="nx">getDate</span><span class="p">();</span>
+        <span class="k">this</span><span class="p">.</span><span class="nx">get</span><span class="p">(</span><span class="s1">&#39;controller.controllers.months&#39;</span><span class="p">).</span><span class="nx">send</span><span class="p">(</span><span class="s1">&#39;addMonth&#39;</span><span class="p">,</span> <span class="nx">id</span><span class="p">);</span>
+    <span class="p">}</span>
+</code></pre></div>
+
+<p>In this example, the <code>DatepickerView</code> is in the <code>IndexRoute</code>, so its context is the <code>IndexController</code>. Since we need to send the <code>addMonth</code> event to the <code>MonthsController</code>, we need to teach our <code>IndexController</code> how to find the <code>MonthsController</code>. We do this using the <code>needs</code> property:</p>
+
+<div class="highlight"><pre><code class="javascript"><span class="nx">App</span><span class="p">.</span><span class="nx">IndexController</span> <span class="o">=</span> <span class="nx">Ember</span><span class="p">.</span><span class="nx">Controller</span><span class="p">.</span><span class="nx">extend</span><span class="p">({</span>
+    <span class="nx">needs</span><span class="o">:</span> <span class="p">[</span><span class="s1">&#39;months&#39;</span><span class="p">]</span>
+<span class="p">});</span>
+</code></pre></div>
+
+<p>Now, every time a user clicks a month, the view sends an <code>addMonth</code> event to the <code>MonthsController</code>. Let&#39;s write a method to handle this event. The goal is to fetch the new model from the server, and once it fetches, add it to the <code>MonthsController</code>. Any view that reads data from the <code>MonthsController</code> (for example, our hypothetical D3 chart) will then automatically update once the data comes in.</p>
+
+<p>Here&#39;s the method:</p>
+
+<div class="highlight"><pre><code class="javascript"><span class="nx">App</span><span class="p">.</span><span class="nx">MonthsController</span> <span class="o">=</span> <span class="nx">Ember</span><span class="p">.</span><span class="nx">ArrayController</span><span class="p">.</span><span class="nx">extend</span><span class="p">({</span>
+    <span class="nx">actions</span><span class="o">:</span> <span class="p">{</span>
+        <span class="nx">addMonth</span><span class="o">:</span> <span class="kd">function</span><span class="p">(</span><span class="nx">id</span><span class="p">)</span> <span class="p">{</span>
+            <span class="kd">var</span> <span class="nx">_this</span> <span class="o">=</span> <span class="k">this</span><span class="p">;</span>
+            <span class="nx">App</span><span class="p">.</span><span class="nx">Month</span><span class="p">.</span><span class="nx">find</span><span class="p">(</span><span class="nx">id</span><span class="p">).</span><span class="nx">then</span><span class="p">(</span><span class="kd">function</span><span class="p">(</span><span class="nx">month</span><span class="p">)</span> <span class="p">{</span>
+                <span class="nx">_this</span><span class="p">.</span><span class="nx">pushObject</span><span class="p">(</span><span class="nx">month</span><span class="p">);</span>
+            <span class="p">});</span>
+        <span class="p">}</span>
+    <span class="p">}</span>
+<span class="p">});</span>
+</code></pre></div>
+
+<p>Pretty simple, right? We add the month to the controller once its returned. And that&#39;s how you can get data to your controllers without changing routes.</p>
+
+<p><em>This is Part 2 in a series of posts on building a basic interactive dashboard using <a href="http://www.d3js.org">D3.js</a> and <a href="http://www.emberjs.com">Ember.js</a>.</em></p>
+
+<p>[^1]: In other words, it may not be appropriate to structure the output resulting from the user&#39;s interaction as a new resource.</p>
+
+
+<!-- ---
+layout: writing
+---
+
+<p>When doing datavis, you&#39;ll often want to display new data without changing the route of your appplication. For example, you may want to supplement a time series chart with a baseline render. These types of UI interactions are not meaningful enough to change the URL[^1], but they still may require an additional call to the server.</p>
+
+<p>Ember places a lot of emphasis on routing, so examples of fetching data from the server when switching routes are prevalent. But here, I want to look at fetching data without changing the route. Let&#39;s say part of our <code>IndexRoute</code> has a datepicker, and each time a user selects a month, we want to add some data to an existing chart. </p>
+
+<p>The first thing to remember is that in Ember, controllers can be thought of as data containers. Models act as proxies to your actual data on the server, but when it comes to actually displaying and manipulating data in your Ember app, controllers take center stage. So, to get some new data, the first step is to make a new controller. We&#39;ll use an <code>ArrayController</code> to hold all the months the user has selected:</p>
+
+<div class="highlight"><pre><code class="javascript"><span class="nx">App</span><span class="p">.</span><span class="nx">MonthsController</span> <span class="o">=</span> <span class="nx">Ember</span><span class="p">.</span><span class="nx">ArrayController</span><span class="p">.</span><span class="nx">extend</span><span class="p">({</span>
+<span class="p">});</span>
+</code></pre></div>
+
+<p>This will be the container for our models.</p>
+
+<p>Now, we want to add some models to our controller. Again, because many Ember apps will only need new data upon entering a new route, you&#39;ll come across numerous guides on how to accomplish this that will point you to a controller&#39;s <code>init</code> function, or to the <code>model</code> or <code>setupController</code> hooks within a route. But that&#39;s not what we&#39;re interested in here. These components are part of Ember&#39;s sophisticated routing system, and while they work nicely when changing routes, we&#39;ll have to find another way.</p>
+
+<p>First, let&#39;s model our data:</p>
+
+<div class="highlight"><pre><code class="javascript"><span class="nx">App</span><span class="p">.</span><span class="nx">Month</span> <span class="o">=</span> <span class="nx">DS</span><span class="p">.</span><span class="nx">Model</span><span class="p">.</span><span class="nx">extend</span><span class="p">({</span>
+    <span class="nx">min</span><span class="o">:</span> <span class="nx">DS</span><span class="p">.</span><span class="nx">attr</span><span class="p">(</span><span class="s1">&#39;number&#39;</span><span class="p">),</span>
+    <span class="nx">max</span><span class="o">:</span> <span class="nx">DS</span><span class="p">.</span><span class="nx">attr</span><span class="p">(</span><span class="s1">&#39;number&#39;</span><span class="p">),</span>
+    <span class="p">(</span><span class="nx">other</span> <span class="nx">data</span><span class="p">)</span>
+    <span class="p">...</span>
+<span class="p">});</span>
+</code></pre></div>
+
+<p>How can we get new <code>Month</code> models into our controller? Let&#39;s start with the UI. Usually when dealing with datepickers, you&#39;ll need to write some Javascript. This means we&#39;ll probably need more than just a template to handle our user interactions. Let&#39;s create a view for our datepicker</p>
+
+<div class="highlight"><pre><code class="javascript"><span class="nx">App</span><span class="p">.</span><span class="nx">DatepickerView</span> <span class="o">=</span> <span class="nx">Ember</span><span class="p">.</span><span class="nx">View</span><span class="p">.</span><span class="nx">extend</span><span class="p">({</span>
+    <span class="nx">init</span><span class="o">:</span> <span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
+        <span class="k">this</span><span class="p">.</span><span class="nx">$</span><span class="p">().</span><span class="nx">datepicker</span><span class="p">();</span>
+        <span class="p">...</span>
+    <span class="p">}</span>
+</code></pre></div>
+
+<p>and add it to our <code>IndexRoute</code></p>
+
+<div class="highlight"><pre><code class="html">// index.html
+<span class="nt">&lt;body&gt;</span>
+    <span class="nt">&lt;script </span><span class="na">type=</span><span class="s">&quot;text/x-handlebars&quot;</span> <span class="na">data-template-name=</span><span class="s">&quot;index&quot;</span><span class="nt">&gt;</span>
+        <span class="o">&lt;</span><span class="nx">h1</span><span class="o">&gt;</span><span class="nx">Welcome</span> <span class="nx">to</span> <span class="nx">may</span> <span class="nx">app</span><span class="o">!&lt;</span><span class="err">/h1&gt;</span>
+        <span class="p">...</span>
+        <span class="o">&lt;</span><span class="nx">aside</span><span class="o">&gt;</span>
+            <span class="p">{{</span><span class="nx">view</span> <span class="nx">App</span><span class="p">.</span><span class="nx">DatepickerView</span><span class="p">}}</span>
+        <span class="o">&lt;</span><span class="err">/aside&gt;</span>
+    <span class="nt">&lt;/script&gt;</span>
+    ...
+<span class="nt">&lt;/body&gt;</span>
+</code></pre></div>
+
+<p>Now, when a user clicks a month on our datepicker, we want to fetch some new data. Ultimately, we&#39;ll use the data to rerender our D3 chart - but in this post, I just want to focus on getting the data. If we were transitioning to a new route, we&#39;d use the standard <code>{{linkTo}}</code> helper, and specify our data in the <code>model</code> hook of our route. Here, we&#39;ll have to write some custom methods. </p>
+
+<p>First, we&#39;ll want to handle the click event in our view. The details will vary depending on what datepicker you&#39;re using (or if you&#39;re writing your own), but you&#39;ll probably be able to access the selected date from the datepicker&#39;s api. But what are we going to do with the selected date? The view shouldn&#39;t be responsible for calling the server directly to get the new data - we already have a controller that should be managing that. So that&#39;s what we&#39;ll do - trigger an event that tells the controller to get some new data. First, tell the view to trigger the event:</p>
+
+<div class="highlight"><pre><code class="javascript"><span class="nx">App</span><span class="p">.</span><span class="nx">DatepickerView</span> <span class="o">=</span> <span class="nx">Ember</span><span class="p">.</span><span class="nx">View</span><span class="p">.</span><span class="nx">extend</span><span class="p">({</span>
+    <span class="nx">click</span><span class="o">:</span> <span class="kd">function</span><span class="p">(</span><span class="nx">e</span><span class="p">)</span> <span class="p">{</span>
+        <span class="kd">var</span> <span class="nx">id</span> <span class="o">=</span> <span class="k">this</span><span class="p">.</span><span class="nx">$</span><span class="p">().</span><span class="nx">datepicker</span><span class="p">().</span><span class="nx">getDate</span><span class="p">();</span>
+        <span class="k">this</span><span class="p">.</span><span class="nx">get</span><span class="p">(</span><span class="s1">&#39;controller.controllers.months&#39;</span><span class="p">).</span><span class="nx">send</span><span class="p">(</span><span class="s1">&#39;addMonth&#39;</span><span class="p">,</span> <span class="nx">id</span><span class="p">);</span>
+    <span class="p">}</span>
+</code></pre></div>
+
+<p>In this example, the <code>DatepickerView</code> is in the <code>IndexRoute</code>, so its context is the <code>IndexController</code>. Since we need to send the <code>addMonth</code> event to the <code>MonthsController</code>, we need to teach our <code>IndexController</code> how to find the <code>MonthsController</code>. We do this using the <code>needs</code> property:</p>
+
+<div class="highlight"><pre><code class="javascript"><span class="nx">App</span><span class="p">.</span><span class="nx">IndexController</span> <span class="o">=</span> <span class="nx">Ember</span><span class="p">.</span><span class="nx">Controller</span><span class="p">.</span><span class="nx">extend</span><span class="p">({</span>
+    <span class="nx">needs</span><span class="o">:</span> <span class="p">[</span><span class="s1">&#39;months&#39;</span><span class="p">]</span>
+<span class="p">});</span>
+</code></pre></div>
+
+<p>Now, every time a user clicks a month, the view sends an <code>addMonth</code> event to the <code>MonthsController</code>. Let&#39;s write a method to handle this event. The goal is to fetch the new model from the server, and once it fetches, add it to the <code>MonthsController</code>. Any view that reads data from the <code>MonthsController</code> (for example, our hypothetical D3 chart) will then automatically update once the data comes in.</p>
+
+<p>Here&#39;s the method:</p>
+
+<div class="highlight"><pre><code class="javascript"><span class="nx">App</span><span class="p">.</span><span class="nx">MonthsController</span> <span class="o">=</span> <span class="nx">Ember</span><span class="p">.</span><span class="nx">ArrayController</span><span class="p">.</span><span class="nx">extend</span><span class="p">({</span>
+    <span class="nx">actions</span><span class="o">:</span> <span class="p">{</span>
+        <span class="nx">addMonth</span><span class="o">:</span> <span class="kd">function</span><span class="p">(</span><span class="nx">id</span><span class="p">)</span> <span class="p">{</span>
+            <span class="kd">var</span> <span class="nx">_this</span> <span class="o">=</span> <span class="k">this</span><span class="p">;</span>
+            <span class="nx">App</span><span class="p">.</span><span class="nx">Month</span><span class="p">.</span><span class="nx">find</span><span class="p">(</span><span class="nx">id</span><span class="p">).</span><span class="nx">then</span><span class="p">(</span><span class="kd">function</span><span class="p">(</span><span class="nx">month</span><span class="p">)</span> <span class="p">{</span>
+                <span class="nx">_this</span><span class="p">.</span><span class="nx">pushObject</span><span class="p">(</span><span class="nx">month</span><span class="p">);</span>
+            <span class="p">});</span>
+        <span class="p">}</span>
+    <span class="p">}</span>
+<span class="p">});</span>
+</code></pre></div>
+
+<p>Pretty simple, right? We add the month to the controller once its returned. And that&#39;s how you can get data to your controllers without changing routes.</p>
+
+<p><em>This is Part 2 in a series of posts on building a basic interactive dashboard using <a href="http://www.d3js.org">D3.js</a> and <a href="http://www.emberjs.com">Ember.js</a>.</em></p>
+
+<p>[^1]: In other words, it may not be appropriate to structure the output resulting from the user&#39;s interaction as a new resource.</p>
+
+<div id="post" class="reading">
+	<article>
+		<header class="page-header">
+  		<h1 class="title">Ember and D3: Getting new data within a route</h3>
+			<p class="byline">July 28, 2013 &#183; programming, ember, d3, and datavis</p>
+		</header>
+		<section>
+			<p>When doing datavis, you&#39;ll often want to display new data without changing the route of your appplication. For example, you may want to supplement a time series chart with a baseline render. These types of UI interactions are not meaningful enough to change the URL[^1], but they still may require an additional call to the server.</p>
+
+<p>Ember places a lot of emphasis on routing, so examples of fetching data from the server when switching routes are prevalent. But here, I want to look at fetching data without changing the route. Let&#39;s say part of our <code>IndexRoute</code> has a datepicker, and each time a user selects a month, we want to add some data to an existing chart. </p>
+
+<p>The first thing to remember is that in Ember, controllers can be thought of as data containers. Models act as proxies to your actual data on the server, but when it comes to actually displaying and manipulating data in your Ember app, controllers take center stage. So, to get some new data, the first step is to make a new controller. We&#39;ll use an <code>ArrayController</code> to hold all the months the user has selected:</p>
+
+<div class="highlight"><pre><code class="javascript"><span class="nx">App</span><span class="p">.</span><span class="nx">MonthsController</span> <span class="o">=</span> <span class="nx">Ember</span><span class="p">.</span><span class="nx">ArrayController</span><span class="p">.</span><span class="nx">extend</span><span class="p">({</span>
+<span class="p">});</span>
+</code></pre></div>
+
+<p>This will be the container for our models.</p>
+
+<p>Now, we want to add some models to our controller. Again, because many Ember apps will only need new data upon entering a new route, you&#39;ll come across numerous guides on how to accomplish this that will point you to a controller&#39;s <code>init</code> function, or to the <code>model</code> or <code>setupController</code> hooks within a route. But that&#39;s not what we&#39;re interested in here. These components are part of Ember&#39;s sophisticated routing system, and while they work nicely when changing routes, we&#39;ll have to find another way.</p>
+
+<p>First, let&#39;s model our data:</p>
+
+<div class="highlight"><pre><code class="javascript"><span class="nx">App</span><span class="p">.</span><span class="nx">Month</span> <span class="o">=</span> <span class="nx">DS</span><span class="p">.</span><span class="nx">Model</span><span class="p">.</span><span class="nx">extend</span><span class="p">({</span>
+    <span class="nx">min</span><span class="o">:</span> <span class="nx">DS</span><span class="p">.</span><span class="nx">attr</span><span class="p">(</span><span class="s1">&#39;number&#39;</span><span class="p">),</span>
+    <span class="nx">max</span><span class="o">:</span> <span class="nx">DS</span><span class="p">.</span><span class="nx">attr</span><span class="p">(</span><span class="s1">&#39;number&#39;</span><span class="p">),</span>
+    <span class="p">(</span><span class="nx">other</span> <span class="nx">data</span><span class="p">)</span>
+    <span class="p">...</span>
+<span class="p">});</span>
+</code></pre></div>
+
+<p>How can we get new <code>Month</code> models into our controller? Let&#39;s start with the UI. Usually when dealing with datepickers, you&#39;ll need to write some Javascript. This means we&#39;ll probably need more than just a template to handle our user interactions. Let&#39;s create a view for our datepicker</p>
+
+<div class="highlight"><pre><code class="javascript"><span class="nx">App</span><span class="p">.</span><span class="nx">DatepickerView</span> <span class="o">=</span> <span class="nx">Ember</span><span class="p">.</span><span class="nx">View</span><span class="p">.</span><span class="nx">extend</span><span class="p">({</span>
+    <span class="nx">init</span><span class="o">:</span> <span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
+        <span class="k">this</span><span class="p">.</span><span class="nx">$</span><span class="p">().</span><span class="nx">datepicker</span><span class="p">();</span>
+        <span class="p">...</span>
+    <span class="p">}</span>
+</code></pre></div>
+
+<p>and add it to our <code>IndexRoute</code></p>
+
+<div class="highlight"><pre><code class="html">// index.html
+<span class="nt">&lt;body&gt;</span>
+    <span class="nt">&lt;script </span><span class="na">type=</span><span class="s">&quot;text/x-handlebars&quot;</span> <span class="na">data-template-name=</span><span class="s">&quot;index&quot;</span><span class="nt">&gt;</span>
+        <span class="o">&lt;</span><span class="nx">h1</span><span class="o">&gt;</span><span class="nx">Welcome</span> <span class="nx">to</span> <span class="nx">may</span> <span class="nx">app</span><span class="o">!&lt;</span><span class="err">/h1&gt;</span>
+        <span class="p">...</span>
+        <span class="o">&lt;</span><span class="nx">aside</span><span class="o">&gt;</span>
+            <span class="p">{{</span><span class="nx">view</span> <span class="nx">App</span><span class="p">.</span><span class="nx">DatepickerView</span><span class="p">}}</span>
+        <span class="o">&lt;</span><span class="err">/aside&gt;</span>
+    <span class="nt">&lt;/script&gt;</span>
+    ...
+<span class="nt">&lt;/body&gt;</span>
+</code></pre></div>
+
+<p>Now, when a user clicks a month on our datepicker, we want to fetch some new data. Ultimately, we&#39;ll use the data to rerender our D3 chart - but in this post, I just want to focus on getting the data. If we were transitioning to a new route, we&#39;d use the standard <code>{{linkTo}}</code> helper, and specify our data in the <code>model</code> hook of our route. Here, we&#39;ll have to write some custom methods. </p>
+
+<p>First, we&#39;ll want to handle the click event in our view. The details will vary depending on what datepicker you&#39;re using (or if you&#39;re writing your own), but you&#39;ll probably be able to access the selected date from the datepicker&#39;s api. But what are we going to do with the selected date? The view shouldn&#39;t be responsible for calling the server directly to get the new data - we already have a controller that should be managing that. So that&#39;s what we&#39;ll do - trigger an event that tells the controller to get some new data. First, tell the view to trigger the event:</p>
+
+<div class="highlight"><pre><code class="javascript"><span class="nx">App</span><span class="p">.</span><span class="nx">DatepickerView</span> <span class="o">=</span> <span class="nx">Ember</span><span class="p">.</span><span class="nx">View</span><span class="p">.</span><span class="nx">extend</span><span class="p">({</span>
+    <span class="nx">click</span><span class="o">:</span> <span class="kd">function</span><span class="p">(</span><span class="nx">e</span><span class="p">)</span> <span class="p">{</span>
+        <span class="kd">var</span> <span class="nx">id</span> <span class="o">=</span> <span class="k">this</span><span class="p">.</span><span class="nx">$</span><span class="p">().</span><span class="nx">datepicker</span><span class="p">().</span><span class="nx">getDate</span><span class="p">();</span>
+        <span class="k">this</span><span class="p">.</span><span class="nx">get</span><span class="p">(</span><span class="s1">&#39;controller.controllers.months&#39;</span><span class="p">).</span><span class="nx">send</span><span class="p">(</span><span class="s1">&#39;addMonth&#39;</span><span class="p">,</span> <span class="nx">id</span><span class="p">);</span>
+    <span class="p">}</span>
+</code></pre></div>
+
+<p>In this example, the <code>DatepickerView</code> is in the <code>IndexRoute</code>, so its context is the <code>IndexController</code>. Since we need to send the <code>addMonth</code> event to the <code>MonthsController</code>, we need to teach our <code>IndexController</code> how to find the <code>MonthsController</code>. We do this using the <code>needs</code> property:</p>
+
+<div class="highlight"><pre><code class="javascript"><span class="nx">App</span><span class="p">.</span><span class="nx">IndexController</span> <span class="o">=</span> <span class="nx">Ember</span><span class="p">.</span><span class="nx">Controller</span><span class="p">.</span><span class="nx">extend</span><span class="p">({</span>
+    <span class="nx">needs</span><span class="o">:</span> <span class="p">[</span><span class="s1">&#39;months&#39;</span><span class="p">]</span>
+<span class="p">});</span>
+</code></pre></div>
+
+<p>Now, every time a user clicks a month, the view sends an <code>addMonth</code> event to the <code>MonthsController</code>. Let&#39;s write a method to handle this event. The goal is to fetch the new model from the server, and once it fetches, add it to the <code>MonthsController</code>. Any view that reads data from the <code>MonthsController</code> (for example, our hypothetical D3 chart) will then automatically update once the data comes in.</p>
+
+<p>Here&#39;s the method:</p>
+
+<div class="highlight"><pre><code class="javascript"><span class="nx">App</span><span class="p">.</span><span class="nx">MonthsController</span> <span class="o">=</span> <span class="nx">Ember</span><span class="p">.</span><span class="nx">ArrayController</span><span class="p">.</span><span class="nx">extend</span><span class="p">({</span>
+    <span class="nx">actions</span><span class="o">:</span> <span class="p">{</span>
+        <span class="nx">addMonth</span><span class="o">:</span> <span class="kd">function</span><span class="p">(</span><span class="nx">id</span><span class="p">)</span> <span class="p">{</span>
+            <span class="kd">var</span> <span class="nx">_this</span> <span class="o">=</span> <span class="k">this</span><span class="p">;</span>
+            <span class="nx">App</span><span class="p">.</span><span class="nx">Month</span><span class="p">.</span><span class="nx">find</span><span class="p">(</span><span class="nx">id</span><span class="p">).</span><span class="nx">then</span><span class="p">(</span><span class="kd">function</span><span class="p">(</span><span class="nx">month</span><span class="p">)</span> <span class="p">{</span>
+                <span class="nx">_this</span><span class="p">.</span><span class="nx">pushObject</span><span class="p">(</span><span class="nx">month</span><span class="p">);</span>
+            <span class="p">});</span>
+        <span class="p">}</span>
+    <span class="p">}</span>
+<span class="p">});</span>
+</code></pre></div>
+
+<p>Pretty simple, right? We add the month to the controller once its returned. And that&#39;s how you can get data to your controllers without changing routes.</p>
+
+<p><em>This is Part 2 in a series of posts on building a basic interactive dashboard using <a href="http://www.d3js.org">D3.js</a> and <a href="http://www.emberjs.com">Ember.js</a>.</em></p>
+
+<p>[^1]: In other words, it may not be appropriate to structure the output resulting from the user&#39;s interaction as a new resource.</p>
+
+		</section>
+
+		<hr>	
+
+		<div class="comments">
+		    <div id="disqus_thread"></div>
+		    <script type="text/javascript">
+		        /* * * CONFIGURATION VARIABLES: EDIT BEFORE PASTING INTO YOUR WEBPAGE * * */
+		        var disqus_shortname = 'samselikoff'; // required: replace example with your forum shortname
+
+		        /* * * DON'T EDIT BELOW THIS LINE * * */
+		        (function() {
+		            var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+		            dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+		            (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+		        })();
+		    </script>
+		    <noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+		    <a href="http://disqus.com" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
+		</div>
+	</article>
+</div>
+ -->
+    </article>
+
+    <div class="comments">
+      <div id="disqus_thread"></div>
+      <script type="text/javascript">
+        /* * * CONFIGURATION VARIABLES: EDIT BEFORE PASTING INTO YOUR WEBPAGE * * */
+        var disqus_shortname = 'samselikoff'; // required: replace example with your forum shortname
+
+        /* * * DON'T EDIT BELOW THIS LINE * * */
+        (function() {
+            var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+            dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+            (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+        })();
+      </script>
+      <noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+      <a href="http://disqus.com" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
+    </div>
+    
+  </div>
+
+<!-- 
+  <footer>
+    <p class="copyright muted">&copy; 2013 Sam Selikoff</p>
+  </footer>
+ -->
+</div>
+
+  </body>
+</html>

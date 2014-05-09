@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html>
+  <head>
+      <meta charset="utf-8">
+      <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+      <title>When to traverse an object graph</title>
+      <meta name="viewport" content="width=device-width">
+
+      <!-- CSS -->
+      <link rel="stylesheet" href="/css/style.css">
+      <link rel="stylesheet" href="/css/print.css">
+      <link href='http://fonts.googleapis.com/css?family=Italianno' rel='stylesheet' type='text/css'>
+
+      <!-- Fonts -->
+      <link href='http://fonts.googleapis.com/css?family=Lato:100,200,300,400' rel='stylesheet' type='text/css'>
+      <link rel="stylesheet" href="/css/font-awesome-4.0.3/css/font-awesome.min.css">
+
+      <link rel="shortcut icon" href="/images/favicon.ico" type="image/x-icon">
+      <script src="/js/jquery.js"></script>
+      <!--[if lt IE 9]>
+        <script src="/js/vendor/modernizr.js"></script>
+      <![endif]-->
+
+  </head>
+  <body>
+    <script>
+      (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+      (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+      m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+      })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+
+      ga('create', 'UA-42527632-1', 'samselikoff.com');
+      ga('send', 'pageview');
+
+    </script>
+        
+    <div id="blog" class="wrap">
+  
+  <div class="container">
+    <article>
+      <div class="clearfix">
+        <a class="thin back" href="/blog">
+          <i class="fa fa-chevron-left"></i> Back to blog
+        </a>
+
+        <p class="date"><small class="soft">January 9, 2014</small></p>
+      </div>
+
+      <h1>When to traverse an object graph
+        <span class="subtitle thin"></span>
+      </h1>
+
+      <p>I&#39;ve been refactoring a .NET app for the past several weeks. It&#39;s my first time really digging into a desktop app, and the architectural similarities with Javascript applications are surprising. Each type of app, being long-lived, requires management of a UI that is typically nested, which in turn raises some interesting questions regarding object responsibility.</p>
+
+<p>One &#39;rule&#39; I&#39;ve found many Javascripters agree on is that child UI elements should never reach into their parents. So, a UserCollectionView object may render a <code>&lt;ul&gt;</code>, and many UserView objects would render their own <code>&lt;li&gt;</code> elements; but an individual UserView would never reach into the parent collection to, let&#39;s say, check whether another user was currently selected. That&#39;s probably a code smell, pointing to the need for a <code>selectedUser</code> property on the collection.</p>
+
+<p>So, from my time building front ends in both Javascript and .NET, I&#39;ve developed an instinct for not reaching into parent objects. Recently, though, I&#39;ve been working on some back-end code with a fairly complex object graph, and many times I&#39;ve found it appropriate to reach from child objects into their parents. For example, say I have a business contract, and I need to know what the previous contract was, in order to calculate a fee change. To me, it seems completely appropriate to reach into the parent company, look for the latest contract before this one, and get some data from it. A contract should know its own fee change. However, each time I&#39;ve deemed it appropriate, I&#39;ve also had to fight a visceral urge to stop myself.</p>
+
+<p>So, what&#39;s going on here? Even if you disagree with me in this particular case, what are some of the general &#39;rules&#39; that guide this kind of reaching across object relationships? Do the responsibilities for objects in parent-child relationships change so drastically when those objects belong to a GUI, rather than a business domain? What rules apply to <em>all</em> objects in parent-child relationships? Are there rules more specific than looking out for <a href="http://sourcemaking.com/refactoring/feature-envy">feature envy</a> in our objects?</p>
+
+<p>I welcome your thoughts.</p>
+
+
+<!-- ---
+layout: writing
+---
+
+<p>I&#39;ve been refactoring a .NET app for the past several weeks. It&#39;s my first time really digging into a desktop app, and the architectural similarities with Javascript applications are surprising. Each type of app, being long-lived, requires management of a UI that is typically nested, which in turn raises some interesting questions regarding object responsibility.</p>
+
+<p>One &#39;rule&#39; I&#39;ve found many Javascripters agree on is that child UI elements should never reach into their parents. So, a UserCollectionView object may render a <code>&lt;ul&gt;</code>, and many UserView objects would render their own <code>&lt;li&gt;</code> elements; but an individual UserView would never reach into the parent collection to, let&#39;s say, check whether another user was currently selected. That&#39;s probably a code smell, pointing to the need for a <code>selectedUser</code> property on the collection.</p>
+
+<p>So, from my time building front ends in both Javascript and .NET, I&#39;ve developed an instinct for not reaching into parent objects. Recently, though, I&#39;ve been working on some back-end code with a fairly complex object graph, and many times I&#39;ve found it appropriate to reach from child objects into their parents. For example, say I have a business contract, and I need to know what the previous contract was, in order to calculate a fee change. To me, it seems completely appropriate to reach into the parent company, look for the latest contract before this one, and get some data from it. A contract should know its own fee change. However, each time I&#39;ve deemed it appropriate, I&#39;ve also had to fight a visceral urge to stop myself.</p>
+
+<p>So, what&#39;s going on here? Even if you disagree with me in this particular case, what are some of the general &#39;rules&#39; that guide this kind of reaching across object relationships? Do the responsibilities for objects in parent-child relationships change so drastically when those objects belong to a GUI, rather than a business domain? What rules apply to <em>all</em> objects in parent-child relationships? Are there rules more specific than looking out for <a href="http://sourcemaking.com/refactoring/feature-envy">feature envy</a> in our objects?</p>
+
+<p>I welcome your thoughts.</p>
+
+<div id="post" class="reading">
+	<article>
+		<header class="page-header">
+  		<h1 class="title">When to traverse an object graph</h3>
+			<p class="byline">January 9, 2014 &#183; programming</p>
+		</header>
+		<section>
+			<p>I&#39;ve been refactoring a .NET app for the past several weeks. It&#39;s my first time really digging into a desktop app, and the architectural similarities with Javascript applications are surprising. Each type of app, being long-lived, requires management of a UI that is typically nested, which in turn raises some interesting questions regarding object responsibility.</p>
+
+<p>One &#39;rule&#39; I&#39;ve found many Javascripters agree on is that child UI elements should never reach into their parents. So, a UserCollectionView object may render a <code>&lt;ul&gt;</code>, and many UserView objects would render their own <code>&lt;li&gt;</code> elements; but an individual UserView would never reach into the parent collection to, let&#39;s say, check whether another user was currently selected. That&#39;s probably a code smell, pointing to the need for a <code>selectedUser</code> property on the collection.</p>
+
+<p>So, from my time building front ends in both Javascript and .NET, I&#39;ve developed an instinct for not reaching into parent objects. Recently, though, I&#39;ve been working on some back-end code with a fairly complex object graph, and many times I&#39;ve found it appropriate to reach from child objects into their parents. For example, say I have a business contract, and I need to know what the previous contract was, in order to calculate a fee change. To me, it seems completely appropriate to reach into the parent company, look for the latest contract before this one, and get some data from it. A contract should know its own fee change. However, each time I&#39;ve deemed it appropriate, I&#39;ve also had to fight a visceral urge to stop myself.</p>
+
+<p>So, what&#39;s going on here? Even if you disagree with me in this particular case, what are some of the general &#39;rules&#39; that guide this kind of reaching across object relationships? Do the responsibilities for objects in parent-child relationships change so drastically when those objects belong to a GUI, rather than a business domain? What rules apply to <em>all</em> objects in parent-child relationships? Are there rules more specific than looking out for <a href="http://sourcemaking.com/refactoring/feature-envy">feature envy</a> in our objects?</p>
+
+<p>I welcome your thoughts.</p>
+
+		</section>
+
+		<hr>	
+
+		<div class="comments">
+		    <div id="disqus_thread"></div>
+		    <script type="text/javascript">
+		        /* * * CONFIGURATION VARIABLES: EDIT BEFORE PASTING INTO YOUR WEBPAGE * * */
+		        var disqus_shortname = 'samselikoff'; // required: replace example with your forum shortname
+
+		        /* * * DON'T EDIT BELOW THIS LINE * * */
+		        (function() {
+		            var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+		            dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+		            (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+		        })();
+		    </script>
+		    <noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+		    <a href="http://disqus.com" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
+		</div>
+	</article>
+</div>
+ -->
+    </article>
+
+    <div class="comments">
+      <div id="disqus_thread"></div>
+      <script type="text/javascript">
+        /* * * CONFIGURATION VARIABLES: EDIT BEFORE PASTING INTO YOUR WEBPAGE * * */
+        var disqus_shortname = 'samselikoff'; // required: replace example with your forum shortname
+
+        /* * * DON'T EDIT BELOW THIS LINE * * */
+        (function() {
+            var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+            dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+            (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+        })();
+      </script>
+      <noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+      <a href="http://disqus.com" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
+    </div>
+    
+  </div>
+
+<!-- 
+  <footer>
+    <p class="copyright muted">&copy; 2013 Sam Selikoff</p>
+  </footer>
+ -->
+</div>
+
+  </body>
+</html>

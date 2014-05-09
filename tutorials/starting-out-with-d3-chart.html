@@ -1,0 +1,513 @@
+<!DOCTYPE html>
+<html>
+  <head>
+      <meta charset="utf-8">
+      <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+      <title>Starting out with d3.chart</title>
+      <meta name="viewport" content="width=device-width">
+
+      <!-- CSS -->
+      <link rel="stylesheet" href="/css/style.css">
+      <link rel="stylesheet" href="/css/print.css">
+      <link href='http://fonts.googleapis.com/css?family=Italianno' rel='stylesheet' type='text/css'>
+
+      <!-- Fonts -->
+      <link href='http://fonts.googleapis.com/css?family=Lato:100,200,300,400' rel='stylesheet' type='text/css'>
+      <link rel="stylesheet" href="/css/font-awesome-4.0.3/css/font-awesome.min.css">
+
+      <link rel="shortcut icon" href="/images/favicon.ico" type="image/x-icon">
+      <script src="/js/jquery.js"></script>
+      <!--[if lt IE 9]>
+        <script src="/js/vendor/modernizr.js"></script>
+      <![endif]-->
+
+  </head>
+  <body>
+    <script>
+      (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+      (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+      m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+      })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+
+      ga('create', 'UA-42527632-1', 'samselikoff.com');
+      ga('send', 'pageview');
+
+    </script>
+        
+    <div id="writing" class="wrap">
+  
+  <div class="container">
+    <article>
+      <div class="clearfix">
+        <a class="thin back" href="/writing">
+          <i class="fa fa-chevron-left"></i> Back to writing
+        </a>
+
+        <p class="date"><small class="soft">February 24, 2014</small></p>
+      </div>
+
+      <h1>Starting out with d3.chart
+        <span class="subtitle thin"></span>
+      </h1>
+
+      <p>Writing reusable D3 code can be tough. The community shines at providing one-off examples of really cool charts, but it&#39;s hard to find a conventional approach to building out a small library of reusable components. <a href="http://misoproject.com/d3-chart/">d3.chart</a> is a library from Bocoup that aims to simplify the development of reusable D3 charts.</p>
+
+<p>If you&#39;re not familiar with d3.chart at all, <a href="https://github.com/misoproject/d3.chart/wiki/quickstart">this walkthrough</a> on Github is a great place to start. You should be able to go through it without too much trouble, but as always, the devil is in the details. In this post I&#39;ll walk you through building a slightly more complex chart than what&#39;s in the walkthrough. Hopefully it will save you some time as you learn the library.</p>
+
+<p>Now, it wouldn&#39;t make much sense to create an isolated chart with d3.chart; after all, the whole point is composability. So let&#39;s start out by making a base chart, which we can then extend to make other visualizations.</p>
+
+<h2>The base chart</h2>
+
+<p>Most charts have a lot in common, like dealing with width and height or re-rendering on resize events. To share this functionality across all our charts, we&#39;ll make a base chart superclass. @iros, one of the library&#39;s authors, regularly updates a <a href="https://github.com/iros/d3.chart.base">base chart</a> on Github, which I use here as a starting point. (There&#39;s a lot going on in that code - don&#39;t worry about it for now.)</p>
+
+<p>We start by defining our base chart:</p>
+<div class="highlight"><pre><code class="js language-js" data-lang="js"><span class="nx">d3</span><span class="p">.</span><span class="nx">chart</span><span class="p">(</span><span class="s1">&#39;BaseChart&#39;</span><span class="p">,</span> <span class="p">{</span> 
+  <span class="c1">// config options go here</span>
+<span class="p">});</span>
+</code></pre></div>
+<p>Now let&#39;s create some properties. For this example, we&#39;ll add width, height, and margin properties to our base chart, since these are pretty common across all charts. In keeping with <a href="http://bl.ocks.org/mbostock/3019563">D3&#39;s margin conventions</a>, we want all code in our extended charts to be able to ignore margins. This means the <code>width</code> and <code>height</code> properties will refer to the <em>inner</em> dimensions of our base chart. Our extended charts can then use these values for scales and other similar objects, without any knowledge of what the base chart&#39;s margins are. Note that this is also how the box model and CSS work in the browser: the width of an element corresponds to the <em>inner</em> width.</p>
+
+<p>We&#39;ll create the properties in the <code>initialize</code> key of our chart&#39;s configuration: </p>
+<div class="highlight"><pre><code class="js language-js" data-lang="js"><span class="nx">d3</span><span class="p">.</span><span class="nx">chart</span><span class="p">(</span><span class="s1">&#39;BaseChart&#39;</span><span class="p">,</span> <span class="p">{</span>
+
+  <span class="nx">initialize</span><span class="o">:</span> <span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
+    <span class="c1">// set up properties with reasonable defaults</span>
+    <span class="k">this</span><span class="p">.</span><span class="nx">_margin</span> <span class="o">=</span> <span class="p">{</span><span class="nx">top</span><span class="o">:</span> <span class="mi">20</span><span class="p">,</span> <span class="nx">right</span><span class="o">:</span> <span class="mi">20</span><span class="p">,</span> <span class="nx">bottom</span><span class="o">:</span> <span class="mi">20</span><span class="p">,</span> <span class="nx">left</span><span class="o">:</span> <span class="mi">20</span><span class="p">};</span>
+    <span class="k">this</span><span class="p">.</span><span class="nx">_width</span>  <span class="o">=</span> <span class="k">this</span><span class="p">.</span><span class="nx">base</span><span class="p">.</span><span class="nx">attr</span><span class="p">(</span><span class="s1">&#39;width&#39;</span><span class="p">)</span>
+      <span class="o">?</span> <span class="k">this</span><span class="p">.</span><span class="nx">base</span><span class="p">.</span><span class="nx">attr</span><span class="p">(</span><span class="s1">&#39;width&#39;</span><span class="p">)</span> <span class="o">-</span> <span class="k">this</span><span class="p">.</span><span class="nx">_margin</span><span class="p">.</span><span class="nx">left</span> <span class="o">-</span> <span class="k">this</span><span class="p">.</span><span class="nx">_margin</span><span class="p">.</span><span class="nx">right</span> 
+      <span class="o">:</span> <span class="mi">200</span><span class="p">;</span>
+    <span class="k">this</span><span class="p">.</span><span class="nx">_height</span> <span class="o">=</span> <span class="k">this</span><span class="p">.</span><span class="nx">base</span><span class="p">.</span><span class="nx">attr</span><span class="p">(</span><span class="s1">&#39;height&#39;</span><span class="p">)</span> 
+      <span class="o">?</span> <span class="k">this</span><span class="p">.</span><span class="nx">base</span><span class="p">.</span><span class="nx">attr</span><span class="p">(</span><span class="s1">&#39;height&#39;</span><span class="p">)</span> <span class="o">-</span> <span class="k">this</span><span class="p">.</span><span class="nx">_margin</span><span class="p">.</span><span class="nx">top</span> <span class="o">-</span> <span class="k">this</span><span class="p">.</span><span class="nx">_margin</span><span class="p">.</span><span class="nx">bottom</span> 
+      <span class="o">:</span> <span class="mi">200</span><span class="p">;</span>
+  <span class="p">}</span>
+
+<span class="p">});</span>
+</code></pre></div>
+<p>As indicated in <a href="http://misoproject.com/d3-chart/api.html#d3chart_i_base">the docs</a>, <code>this.base</code> refers to the <a href="https://github.com/mbostock/d3/wiki/Selections">D3 selection</a> our chart will operate on - typically an <code>&lt;svg&gt;</code> element. If the width and height have already been set on this selection, we&#39;ll take those values for the dimensions of our charts; otherwise, we&#39;ll choose default values of 200.</p>
+
+<p>Next, we&#39;ll append a <code>g</code> element to the base and translate it by our margins - again, by convention:</p>
+<div class="highlight"><pre><code class="js language-js" data-lang="js"><span class="nx">d3</span><span class="p">.</span><span class="nx">chart</span><span class="p">(</span><span class="s1">&#39;BaseChart&#39;</span><span class="p">,</span> <span class="p">{</span>
+
+  <span class="nx">initialize</span><span class="o">:</span> <span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
+    <span class="p">...</span>
+
+    <span class="c1">// add a marginalized container</span>
+    <span class="k">this</span><span class="p">.</span><span class="nx">base</span><span class="p">.</span><span class="nx">append</span><span class="p">(</span><span class="s1">&#39;g&#39;</span><span class="p">)</span>
+      <span class="p">.</span><span class="nx">attr</span><span class="p">(</span><span class="s1">&#39;transform&#39;</span><span class="p">,</span> <span class="s1">&#39;translate(&#39;</span> <span class="o">+</span> <span class="k">this</span><span class="p">.</span><span class="nx">_margin</span><span class="p">.</span><span class="nx">left</span> <span class="o">+</span> <span class="s1">&#39;,&#39;</span> <span class="o">+</span> <span class="k">this</span><span class="p">.</span><span class="nx">_margin</span><span class="p">.</span><span class="nx">top</span> <span class="o">+</span> <span class="s1">&#39;)&#39;</span><span class="p">);</span>
+  <span class="p">}</span>
+
+<span class="p">});</span>
+</code></pre></div>
+<p>We&#39;ll render our extended charts to this element. Since the charts will reference the inner dimensions, they will implicitly recognize our base chart&#39;s margins.</p>
+
+<h3>Getter/setters</h3>
+
+<p>To make the dimensions accessible, we can write getter/setters. Let&#39;s start with width:</p>
+<div class="highlight"><pre><code class="js language-js" data-lang="js"><span class="nx">d3</span><span class="p">.</span><span class="nx">chart</span><span class="p">(</span><span class="s1">&#39;BaseChart&#39;</span><span class="p">,</span> <span class="p">{</span>
+  <span class="nx">initialize</span><span class="o">:</span> <span class="kd">function</span><span class="p">()</span> <span class="p">{...},</span>
+
+  <span class="nx">width</span><span class="o">:</span> <span class="kd">function</span><span class="p">(</span><span class="nx">newWidth</span><span class="p">)</span> <span class="p">{</span>
+    <span class="k">if</span> <span class="p">(</span><span class="nx">arguments</span><span class="p">.</span><span class="nx">length</span> <span class="o">===</span> <span class="mi">0</span><span class="p">)</span> <span class="p">{</span>
+      <span class="k">return</span> <span class="k">this</span><span class="p">.</span><span class="nx">_width</span><span class="p">;</span>
+    <span class="p">}</span>
+
+    <span class="c1">// only if the width actually changed,</span>
+    <span class="k">if</span> <span class="p">(</span><span class="k">this</span><span class="p">.</span><span class="nx">_width</span> <span class="o">!==</span> <span class="nx">newWidth</span><span class="p">)</span> <span class="p">{</span>
+
+      <span class="kd">var</span> <span class="nx">oldWidth</span> <span class="o">=</span> <span class="k">this</span><span class="p">.</span><span class="nx">_width</span><span class="p">;</span>
+
+      <span class="k">this</span><span class="p">.</span><span class="nx">_width</span> <span class="o">=</span> <span class="nx">newWidth</span><span class="p">;</span>
+
+      <span class="c1">// set higher container&#39;s width</span>
+      <span class="k">this</span><span class="p">.</span><span class="nx">base</span><span class="p">.</span><span class="nx">attr</span><span class="p">(</span><span class="s1">&#39;width&#39;</span><span class="p">,</span> <span class="k">this</span><span class="p">.</span><span class="nx">_width</span> <span class="o">+</span> <span class="k">this</span><span class="p">.</span><span class="nx">_margin</span><span class="p">.</span><span class="nx">left</span> <span class="o">+</span> <span class="k">this</span><span class="p">.</span><span class="nx">_margin</span><span class="p">.</span><span class="nx">right</span><span class="p">);</span>
+
+      <span class="c1">// trigger a change event</span>
+      <span class="k">this</span><span class="p">.</span><span class="nx">trigger</span><span class="p">(</span><span class="s1">&#39;change:width&#39;</span><span class="p">,</span> <span class="nx">newWidth</span><span class="p">,</span> <span class="nx">oldWidth</span><span class="p">);</span>
+    <span class="p">}</span>
+
+    <span class="c1">// always return the chart, for chaining magic.</span>
+    <span class="k">return</span> <span class="k">this</span><span class="p">;</span>
+  <span class="p">}</span>
+<span class="p">});</span>
+</code></pre></div>
+<p>Notice that we trigger an event when the width changes, sending the new and old widths as event parameters. This allows our extended charts to, for example, render custom transitions during the change event.</p>
+
+<p>The height method is nearly identical, and for now I&#39;ve just made the margin method a barebones getter/setter. You can see them both in the links at the end of this post.</p>
+
+<p>There&#39;s one more item on the agenda before we can leave our base chart. In the <code>initialize</code> method, we provided some defaults for width and height, in case they were not defined on the parent container element. If in fact we do use those defaults, our base chart should go ahead and set the container&#39;s actual dimensions in the DOM. The code is the same as what&#39;s already in our getter/setters: <code>this.base.attr(&#39;width&#39;, this._width + this._margin.left + this._margin.right)</code>.</p>
+
+<p>Since duplication is evil, let&#39;s first wrap this up in a method instead of copying it, and then replace the code in the <code>width</code> method with a call to this new method:</p>
+<div class="highlight"><pre><code class="js language-js" data-lang="js"><span class="nx">d3</span><span class="p">.</span><span class="nx">chart</span><span class="p">(</span><span class="s1">&#39;BaseChart&#39;</span><span class="p">,</span> <span class="p">{</span>
+  <span class="nx">initialize</span><span class="o">:</span> <span class="kd">function</span><span class="p">()</span> <span class="p">{...},</span>
+
+  <span class="nx">updateContainerWidth</span><span class="o">:</span> <span class="kd">function</span><span class="p">()</span> <span class="p">{</span> <span class="k">this</span><span class="p">.</span><span class="nx">base</span><span class="p">.</span><span class="nx">attr</span><span class="p">(</span><span class="s1">&#39;width&#39;</span><span class="p">,</span> <span class="k">this</span><span class="p">.</span><span class="nx">_width</span> <span class="o">+</span> <span class="k">this</span><span class="p">.</span><span class="nx">_margin</span><span class="p">.</span><span class="nx">left</span> <span class="o">+</span> <span class="k">this</span><span class="p">.</span><span class="nx">_margin</span><span class="p">.</span><span class="nx">right</span><span class="p">);</span> <span class="p">},</span>
+
+  <span class="nx">width</span><span class="o">:</span> <span class="kd">function</span><span class="p">(</span><span class="nx">newWidth</span><span class="p">)</span> <span class="p">{</span>
+    <span class="p">...</span>
+    <span class="c1">// set higher container&#39;s width</span>
+    <span class="k">this</span><span class="p">.</span><span class="nx">updateContainerWidth</span><span class="p">();</span>
+    <span class="p">...</span>
+  <span class="p">},</span>
+
+<span class="p">})</span>
+</code></pre></div>
+<p>We do the same for height. Now, let&#39;s add code in the <code>initialize</code> method to make sure the parent container&#39;s dimensions are set:</p>
+<div class="highlight"><pre><code class="js language-js" data-lang="js"><span class="nx">d3</span><span class="p">.</span><span class="nx">chart</span><span class="p">(</span><span class="s1">&#39;BaseChart&#39;</span><span class="p">,</span> <span class="p">{</span>
+  <span class="nx">initialize</span><span class="o">:</span> <span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
+
+    <span class="c1">// setup some reasonable defaults</span>
+    <span class="k">this</span><span class="p">.</span><span class="nx">_margin</span> <span class="o">=</span> <span class="p">{</span><span class="nx">top</span><span class="o">:</span> <span class="mi">20</span><span class="p">,</span> <span class="nx">right</span><span class="o">:</span> <span class="mi">20</span><span class="p">,</span> <span class="nx">bottom</span><span class="o">:</span> <span class="mi">20</span><span class="p">,</span> <span class="nx">left</span><span class="o">:</span> <span class="mi">20</span><span class="p">};</span>
+    <span class="k">this</span><span class="p">.</span><span class="nx">_width</span>  <span class="o">=</span> <span class="k">this</span><span class="p">.</span><span class="nx">base</span><span class="p">.</span><span class="nx">attr</span><span class="p">(</span><span class="s1">&#39;width&#39;</span><span class="p">)</span> <span class="o">?</span> <span class="k">this</span><span class="p">.</span><span class="nx">base</span><span class="p">.</span><span class="nx">attr</span><span class="p">(</span><span class="s1">&#39;width&#39;</span><span class="p">)</span> <span class="o">-</span> <span class="k">this</span><span class="p">.</span><span class="nx">_margin</span><span class="p">.</span><span class="nx">left</span> <span class="o">-</span> <span class="k">this</span><span class="p">.</span><span class="nx">_margin</span><span class="p">.</span><span class="nx">right</span> <span class="o">:</span> <span class="mi">200</span><span class="p">;</span>
+    <span class="k">this</span><span class="p">.</span><span class="nx">_height</span> <span class="o">=</span> <span class="k">this</span><span class="p">.</span><span class="nx">base</span><span class="p">.</span><span class="nx">attr</span><span class="p">(</span><span class="s1">&#39;height&#39;</span><span class="p">)</span> <span class="o">?</span> <span class="k">this</span><span class="p">.</span><span class="nx">base</span><span class="p">.</span><span class="nx">attr</span><span class="p">(</span><span class="s1">&#39;height&#39;</span><span class="p">)</span> <span class="o">-</span> <span class="k">this</span><span class="p">.</span><span class="nx">_margin</span><span class="p">.</span><span class="nx">top</span> <span class="o">-</span> <span class="k">this</span><span class="p">.</span><span class="nx">_margin</span><span class="p">.</span><span class="nx">bottom</span> <span class="o">:</span> <span class="mi">200</span><span class="p">;</span>
+
+    <span class="c1">// make sure container height and width are set</span>
+    <span class="k">this</span><span class="p">.</span><span class="nx">updateContainerWidth</span><span class="p">();</span>
+    <span class="k">this</span><span class="p">.</span><span class="nx">updateContainerHeight</span><span class="p">();</span>
+
+    <span class="c1">// add a marginalized container</span>
+    <span class="k">this</span><span class="p">.</span><span class="nx">base</span><span class="p">.</span><span class="nx">append</span><span class="p">(</span><span class="s1">&#39;g&#39;</span><span class="p">).</span><span class="nx">attr</span><span class="p">(</span><span class="s1">&#39;transform&#39;</span><span class="p">,</span> <span class="s1">&#39;translate(&#39;</span> <span class="o">+</span> <span class="k">this</span><span class="p">.</span><span class="nx">_margin</span><span class="p">.</span><span class="nx">left</span> <span class="o">+</span> <span class="s1">&#39;,&#39;</span> <span class="o">+</span> <span class="k">this</span><span class="p">.</span><span class="nx">_margin</span><span class="p">.</span><span class="nx">top</span> <span class="o">+</span> <span class="s1">&#39;)&#39;</span><span class="p">);</span>
+
+  <span class="p">},</span>
+
+  <span class="p">...</span>
+<span class="p">})</span>
+</code></pre></div>
+<p>We now have a base chart that handles dimensions and margins - we&#39;re ready to extend it!</p>
+
+<h2>A bar chart</h2>
+
+<p>We&#39;ll make a simple bar chart that extends our base chart:</p>
+<div class="highlight"><pre><code class="js language-js" data-lang="js"><span class="nx">d3</span><span class="p">.</span><span class="nx">chart</span><span class="p">(</span><span class="s1">&#39;BaseChart&#39;</span><span class="p">).</span><span class="nx">extend</span><span class="p">(</span><span class="s1">&#39;BarChart&#39;</span><span class="p">,</span> <span class="p">{</span>
+  <span class="c1">// config options</span>
+<span class="p">});</span>
+</code></pre></div>
+<p>Just like in the base chart, we&#39;ll put variables we plan on using throughout the chart in the <code>initialize</code> method, as properties. In this chart we&#39;ll need x and y scales, and a color scale.</p>
+<div class="highlight"><pre><code class="js language-js" data-lang="js"><span class="nx">d3</span><span class="p">.</span><span class="nx">chart</span><span class="p">(</span><span class="s1">&#39;BaseChart&#39;</span><span class="p">).</span><span class="nx">extend</span><span class="p">(</span><span class="s1">&#39;BarChart&#39;</span><span class="p">,</span> <span class="p">{</span>
+
+  <span class="nx">initialize</span><span class="o">:</span> <span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
+    <span class="k">this</span><span class="p">.</span><span class="nx">xScale</span> <span class="o">=</span> <span class="nx">d3</span><span class="p">.</span><span class="nx">scale</span><span class="p">.</span><span class="nx">ordinal</span><span class="p">().</span><span class="nx">rangeRoundBands</span><span class="p">([</span><span class="mi">0</span><span class="p">,</span> <span class="k">this</span><span class="p">.</span><span class="nx">width</span><span class="p">()],</span> <span class="mf">0.1</span><span class="p">);</span>
+    <span class="k">this</span><span class="p">.</span><span class="nx">yScale</span> <span class="o">=</span> <span class="nx">d3</span><span class="p">.</span><span class="nx">scale</span><span class="p">.</span><span class="nx">linear</span><span class="p">().</span><span class="nx">range</span><span class="p">([</span><span class="k">this</span><span class="p">.</span><span class="nx">height</span><span class="p">(),</span> <span class="mi">0</span><span class="p">]);</span>
+    <span class="k">this</span><span class="p">.</span><span class="nx">color</span> <span class="o">=</span> <span class="nx">d3</span><span class="p">.</span><span class="nx">scale</span><span class="p">.</span><span class="nx">category10</span><span class="p">();</span>
+  <span class="p">}</span>
+
+<span class="p">});</span>
+</code></pre></div>
+<p>Notice that our extended bar chart has access to the width and height methods in the base chart (e.g. <code>this.height()</code>), just as we&#39;d expect.</p>
+
+<p>Next, let&#39;s think about the events that our base chart triggers. How will a changing width or height affect our bar chart? Looking at the code we just added, we can see that the x and y scales depend on the chart&#39;s dimensions. This means that when the width (height) changes, we need to update the range of the x (y) scale.</p>
+
+<p>There are some methods provided by d3.chart for data-driven operations, but since this code doesn&#39;t depend on the actual data our chart will be displaying, we can add it to the <code>initialize</code> method:</p>
+<div class="highlight"><pre><code class="js language-js" data-lang="js"><span class="nx">d3</span><span class="p">.</span><span class="nx">chart</span><span class="p">(</span><span class="s1">&#39;BaseChart&#39;</span><span class="p">).</span><span class="nx">extend</span><span class="p">(</span><span class="s1">&#39;BarChart&#39;</span><span class="p">,</span> <span class="p">{</span>
+
+  <span class="nx">initialize</span><span class="o">:</span> <span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
+    <span class="kd">var</span> <span class="nx">chart</span> <span class="o">=</span> <span class="k">this</span><span class="p">;</span>
+
+    <span class="nx">chart</span><span class="p">.</span><span class="nx">xScale</span> <span class="o">=</span> <span class="nx">d3</span><span class="p">.</span><span class="nx">scale</span><span class="p">.</span><span class="nx">ordinal</span><span class="p">().</span><span class="nx">rangeRoundBands</span><span class="p">([</span><span class="mi">0</span><span class="p">,</span> <span class="nx">chart</span><span class="p">.</span><span class="nx">width</span><span class="p">()],</span> <span class="mf">0.1</span><span class="p">);</span>
+    <span class="nx">chart</span><span class="p">.</span><span class="nx">yScale</span> <span class="o">=</span> <span class="nx">d3</span><span class="p">.</span><span class="nx">scale</span><span class="p">.</span><span class="nx">linear</span><span class="p">().</span><span class="nx">range</span><span class="p">([</span><span class="nx">chart</span><span class="p">.</span><span class="nx">height</span><span class="p">(),</span> <span class="mi">0</span><span class="p">]);</span>
+    <span class="nx">chart</span><span class="p">.</span><span class="nx">color</span> <span class="o">=</span> <span class="nx">d3</span><span class="p">.</span><span class="nx">scale</span><span class="p">.</span><span class="nx">category10</span><span class="p">();</span>
+
+    <span class="c1">// update scales on dimension changes</span>
+    <span class="nx">chart</span><span class="p">.</span><span class="nx">on</span><span class="p">(</span><span class="s1">&#39;change:width&#39;</span><span class="p">,</span> <span class="kd">function</span><span class="p">(</span><span class="nx">newWidth</span><span class="p">)</span> <span class="p">{</span>
+      <span class="nx">chart</span><span class="p">.</span><span class="nx">xScale</span><span class="p">.</span><span class="nx">rangeRoundBands</span><span class="p">([</span><span class="mi">0</span><span class="p">,</span> <span class="nx">newWidth</span><span class="p">],</span> <span class="mf">0.1</span><span class="p">);</span>
+    <span class="p">});</span>
+    <span class="nx">chart</span><span class="p">.</span><span class="nx">on</span><span class="p">(</span><span class="s1">&#39;change:height&#39;</span><span class="p">,</span> <span class="kd">function</span><span class="p">(</span><span class="nx">newHeight</span><span class="p">)</span> <span class="p">{</span>
+      <span class="nx">chart</span><span class="p">.</span><span class="nx">yScale</span><span class="p">.</span><span class="nx">range</span><span class="p">([</span><span class="nx">newHeight</span><span class="p">,</span> <span class="mi">0</span><span class="p">]);</span>
+    <span class="p">});</span> 
+  <span class="p">}</span>
+
+<span class="p">});</span>
+</code></pre></div>
+<h3>Transform</h3>
+
+<p>Layers in d3.chart are where we actually create our data-driven elements - in our case, the bars. But before we get there, we need to make sure our data is in the correct format. To find out if we need to first transform our data, lets ask ourselves the following:</p>
+
+<ol>
+<li>Does our data need to be massaged before being bound to our elements?</li>
+<li>Are there any one-time data-driven operations that need to be performed on a given input data set for the chart as a whole (i.e. data-driven operations that don&#39;t belong in any particular layer)?</li>
+</ol>
+
+<p>If you have operations that fall into either of these categories, you should put them in the <code>transform</code> method. This method takes the raw data that the user passes in, transforms it, and then hands the transformed data off to the rest of your chart.</p>
+
+<p>So what about us - do we need to perform any such operations? To answer the first question, let&#39;s look at a sample of our raw data:</p>
+<div class="highlight"><pre><code class="js language-js" data-lang="js"><span class="kd">var</span> <span class="nx">data</span> <span class="o">=</span> <span class="p">[</span>
+  <span class="p">{</span><span class="nx">name</span><span class="o">:</span> <span class="s2">&quot;A&quot;</span><span class="p">,</span> <span class="nx">value</span><span class="o">:</span> <span class="mi">10</span><span class="p">},</span>
+  <span class="p">{</span><span class="nx">name</span><span class="o">:</span> <span class="s2">&quot;B&quot;</span><span class="p">,</span> <span class="nx">value</span><span class="o">:</span> <span class="mi">3</span><span class="p">},</span>
+  <span class="p">...</span>
+<span class="p">]</span><span class="o">:</span>
+</code></pre></div>
+<p>In our case, the <code>value</code> data will be bound to our bars. There&#39;s no transformation we need to perform, since we&#39;ll just pass the data through our scales to get the appropriate heights. So, we don&#39;t really need to massage the data for our layers. </p>
+
+<p>But what about the second question? Our scales <em>do</em> change based on the extent of our data. Because the scales are characteristics of the chart as a whole, rather than just the bars layer (consider sharing the scales with an axis layer), let&#39;s add code to update our scales in the <code>transform</code> method:</p>
+<div class="highlight"><pre><code class="js language-js" data-lang="js"><span class="nx">d3</span><span class="p">.</span><span class="nx">chart</span><span class="p">(</span><span class="s1">&#39;BaseChart&#39;</span><span class="p">).</span><span class="nx">extend</span><span class="p">(</span><span class="s1">&#39;BarChart&#39;</span><span class="p">,</span> <span class="p">{</span>
+
+  <span class="nx">initialize</span><span class="o">:</span> <span class="kd">function</span><span class="p">()</span> <span class="p">{..},</span>
+
+  <span class="nx">transform</span><span class="o">:</span> <span class="kd">function</span><span class="p">(</span><span class="nx">data</span><span class="p">)</span> <span class="p">{</span>
+    <span class="kd">var</span> <span class="nx">chart</span> <span class="o">=</span> <span class="k">this</span><span class="p">;</span>
+
+    <span class="c1">// update the scales</span>
+    <span class="nx">chart</span><span class="p">.</span><span class="nx">xScale</span><span class="p">.</span><span class="nx">domain</span><span class="p">(</span><span class="nx">data</span><span class="p">.</span><span class="nx">map</span><span class="p">(</span><span class="kd">function</span><span class="p">(</span><span class="nx">d</span><span class="p">)</span> <span class="p">{</span> <span class="k">return</span> <span class="nx">d</span><span class="p">.</span><span class="nx">name</span><span class="p">;</span> <span class="p">}));</span>
+    <span class="nx">chart</span><span class="p">.</span><span class="nx">yScale</span><span class="p">.</span><span class="nx">domain</span><span class="p">(</span><span class="nx">d3</span><span class="p">.</span><span class="nx">extent</span><span class="p">(</span><span class="nx">data</span><span class="p">,</span> <span class="kd">function</span><span class="p">(</span><span class="nx">d</span><span class="p">)</span> <span class="p">{</span><span class="k">return</span> <span class="nx">d</span><span class="p">.</span><span class="nx">value</span><span class="p">;}));</span>
+
+    <span class="k">return</span> <span class="nx">data</span><span class="p">;</span>
+  <span class="p">}</span>
+
+<span class="p">});</span>
+</code></pre></div>
+<p>Note that we have to return <code>data</code>, even though we didn&#39;t actually do anything to it, because d3.chart hands off the return value of this method to the rest of our chart.</p>
+
+<h3>Layers</h3>
+
+<p>Now we&#39;re ready to add a layer, where we will actually render the bars. We add the layer in the <code>initialize</code> method. Layers take a name, a D3 selection, and an options object in their definition (<a href="http://misoproject.com/d3-chart/api.html#d3chart_i_layer">docs</a>):</p>
+<div class="highlight"><pre><code class="js language-js" data-lang="js"><span class="nx">d3</span><span class="p">.</span><span class="nx">chart</span><span class="p">(</span><span class="s1">&#39;BaseChart&#39;</span><span class="p">).</span><span class="nx">extend</span><span class="p">(</span><span class="s1">&#39;BarChart&#39;</span><span class="p">,</span> <span class="p">{</span>
+
+  <span class="nx">initialize</span><span class="o">:</span> <span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
+    <span class="p">...</span>
+
+    <span class="nx">chart</span><span class="p">.</span><span class="nx">layer</span><span class="p">(</span><span class="s1">&#39;bars&#39;</span><span class="p">,</span> <span class="nx">chart</span><span class="p">.</span><span class="nx">base</span><span class="p">.</span><span class="nx">select</span><span class="p">(</span><span class="s1">&#39;g&#39;</span><span class="p">).</span><span class="nx">append</span><span class="p">(</span><span class="s1">&#39;g&#39;</span><span class="p">).</span><span class="nx">classed</span><span class="p">(</span><span class="s1">&#39;bars&#39;</span><span class="p">,</span><span class="kc">true</span><span class="p">),</span> <span class="p">{</span>
+      <span class="c1">// layer options</span>
+    <span class="p">});</span>
+  <span class="p">},</span>
+
+  <span class="nx">transform</span><span class="o">:</span> <span class="kd">function</span><span class="p">(</span><span class="nx">data</span><span class="p">)</span> <span class="p">{...}</span>
+
+<span class="p">});</span>
+</code></pre></div>
+<p>Our bars layer gets its own <code>g</code> element. This element is a child of the base chart&#39;s <code>g</code> element, so that we can ignore margins while coding our bar chart.</p>
+
+<p>Now, let&#39;s flesh out the layer. Typically in D3, we use the following workflow:</p>
+
+<ol>
+<li>Bind data to elements</li>
+<li>Insert those elements to the DOM</li>
+<li>Transform those elements when the data changes</li>
+</ol>
+
+<p>d3.chart preserves this workflow, but forces us to keep these concerns separate. We&#39;ll start out by binding our data within the <code>dataBind</code> method:</p>
+<div class="highlight"><pre><code class="js language-js" data-lang="js"><span class="nx">chart</span><span class="p">.</span><span class="nx">layer</span><span class="p">(</span><span class="s1">&#39;bars&#39;</span><span class="p">,</span> <span class="nx">chart</span><span class="p">.</span><span class="nx">base</span><span class="p">.</span><span class="nx">select</span><span class="p">(</span><span class="s1">&#39;g&#39;</span><span class="p">).</span><span class="nx">append</span><span class="p">(</span><span class="s1">&#39;g&#39;</span><span class="p">).</span><span class="nx">classed</span><span class="p">(</span><span class="s1">&#39;bars&#39;</span><span class="p">,</span><span class="kc">true</span><span class="p">),</span> <span class="p">{</span>
+
+  <span class="nx">dataBind</span><span class="o">:</span> <span class="kd">function</span><span class="p">(</span><span class="nx">data</span><span class="p">)</span> <span class="p">{</span>
+    <span class="k">return</span> <span class="k">this</span><span class="p">.</span><span class="nx">selectAll</span><span class="p">(</span><span class="s1">&#39;.bar&#39;</span><span class="p">)</span>
+      <span class="p">.</span><span class="nx">data</span><span class="p">(</span><span class="nx">data</span><span class="p">);</span>
+  <span class="p">}</span>
+
+<span class="p">});</span>
+</code></pre></div>
+<p>This gives us a data join to work with. Next, we use the <code>insert</code> method to insert the elements into the DOM:</p>
+<div class="highlight"><pre><code class="js language-js" data-lang="js"><span class="nx">chart</span><span class="p">.</span><span class="nx">layer</span><span class="p">(</span><span class="s1">&#39;bars&#39;</span><span class="p">,</span> <span class="nx">chart</span><span class="p">.</span><span class="nx">base</span><span class="p">.</span><span class="nx">select</span><span class="p">(</span><span class="s1">&#39;g&#39;</span><span class="p">).</span><span class="nx">append</span><span class="p">(</span><span class="s1">&#39;g&#39;</span><span class="p">).</span><span class="nx">classed</span><span class="p">(</span><span class="s1">&#39;bars&#39;</span><span class="p">,</span><span class="kc">true</span><span class="p">),</span> <span class="p">{</span>
+  <span class="nx">dataBind</span><span class="o">:</span> <span class="kd">function</span><span class="p">(</span><span class="nx">data</span><span class="p">)</span> <span class="p">{...},</span>
+
+  <span class="nx">insert</span><span class="o">:</span> <span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
+    <span class="k">return</span> <span class="k">this</span><span class="p">.</span><span class="nx">append</span><span class="p">(</span><span class="s1">&#39;rect&#39;</span><span class="p">)</span>
+      <span class="p">.</span><span class="nx">attr</span><span class="p">(</span><span class="s1">&#39;class&#39;</span><span class="p">,</span> <span class="s1">&#39;bar&#39;</span><span class="p">);</span>
+  <span class="p">}</span>
+
+<span class="p">});</span>
+</code></pre></div>
+<p>In both of these methods we return the selections, so our subsequent handlers can use them.</p>
+
+<p>Finally, now that we have the elements in the DOM, we can manipulate them based on our data joins. D3 groups joins into enter, exit, update and merge subselections. d3.chart gives us access to each of these selections in an <code>events</code> hash within our layer. Within d3.chart, these events are referred to as <em>lifecycle events</em>.</p>
+
+<p>Let&#39;s code the <em>enter</em> lifecycle event. When new data enters our document, we&#39;ll size the bars according to their values:</p>
+<div class="highlight"><pre><code class="js language-js" data-lang="js"><span class="nx">chart</span><span class="p">.</span><span class="nx">layer</span><span class="p">(</span><span class="s1">&#39;bars&#39;</span><span class="p">,</span> <span class="nx">chart</span><span class="p">.</span><span class="nx">base</span><span class="p">.</span><span class="nx">select</span><span class="p">(</span><span class="s1">&#39;g&#39;</span><span class="p">).</span><span class="nx">append</span><span class="p">(</span><span class="s1">&#39;g&#39;</span><span class="p">).</span><span class="nx">classed</span><span class="p">(</span><span class="s1">&#39;bars&#39;</span><span class="p">,</span><span class="kc">true</span><span class="p">),</span> <span class="p">{</span>
+  <span class="nx">dataBind</span><span class="o">:</span> <span class="kd">function</span><span class="p">(</span><span class="nx">data</span><span class="p">)</span> <span class="p">{...},</span>
+  <span class="nx">insert</span><span class="o">:</span> <span class="kd">function</span><span class="p">()</span> <span class="p">{...},</span>
+
+  <span class="nx">events</span><span class="o">:</span> <span class="p">{</span>
+    <span class="s1">&#39;enter&#39;</span><span class="o">:</span> <span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
+      <span class="kd">var</span> <span class="nx">chart</span> <span class="o">=</span> <span class="k">this</span><span class="p">.</span><span class="nx">chart</span><span class="p">();</span>
+
+      <span class="k">this</span><span class="p">.</span><span class="nx">attr</span><span class="p">(</span><span class="s1">&#39;x&#39;</span><span class="p">,</span> <span class="kd">function</span><span class="p">(</span><span class="nx">d</span><span class="p">)</span> <span class="p">{</span> <span class="k">return</span> <span class="nx">chart</span><span class="p">.</span><span class="nx">xScale</span><span class="p">(</span><span class="nx">d</span><span class="p">.</span><span class="nx">name</span><span class="p">);</span> <span class="p">})</span>
+        <span class="p">.</span><span class="nx">attr</span><span class="p">(</span><span class="s1">&#39;y&#39;</span><span class="p">,</span> <span class="kd">function</span><span class="p">(</span><span class="nx">d</span><span class="p">)</span> <span class="p">{</span> <span class="k">return</span> <span class="nx">chart</span><span class="p">.</span><span class="nx">yScale</span><span class="p">(</span><span class="nx">d3</span><span class="p">.</span><span class="nx">max</span><span class="p">([</span><span class="mi">0</span><span class="p">,</span> <span class="nx">d</span><span class="p">.</span><span class="nx">value</span><span class="p">]));</span> <span class="p">})</span>
+        <span class="p">.</span><span class="nx">attr</span><span class="p">(</span><span class="s1">&#39;fill&#39;</span><span class="p">,</span> <span class="kd">function</span><span class="p">(</span><span class="nx">d</span><span class="p">)</span> <span class="p">{</span><span class="k">return</span> <span class="nx">chart</span><span class="p">.</span><span class="nx">color</span><span class="p">(</span><span class="nx">d</span><span class="p">.</span><span class="nx">name</span><span class="p">);})</span>
+        <span class="p">.</span><span class="nx">attr</span><span class="p">(</span><span class="s1">&#39;width&#39;</span><span class="p">,</span> <span class="nx">chart</span><span class="p">.</span><span class="nx">xScale</span><span class="p">.</span><span class="nx">rangeBand</span><span class="p">())</span>
+        <span class="p">.</span><span class="nx">attr</span><span class="p">(</span><span class="s1">&#39;height&#39;</span><span class="p">,</span> <span class="kd">function</span><span class="p">(</span><span class="nx">d</span><span class="p">)</span> <span class="p">{</span> <span class="k">return</span> <span class="nb">Math</span><span class="p">.</span><span class="nx">abs</span><span class="p">(</span><span class="nx">chart</span><span class="p">.</span><span class="nx">yScale</span><span class="p">(</span><span class="nx">d</span><span class="p">.</span><span class="nx">value</span><span class="p">)</span> <span class="o">-</span> <span class="nx">chart</span><span class="p">.</span><span class="nx">yScale</span><span class="p">(</span><span class="mi">0</span><span class="p">));</span> <span class="p">});</span>
+    <span class="p">}</span>
+  <span class="p">}</span>
+
+<span class="p">});</span>
+</code></pre></div>
+<p>At this point you may be wondering why we <code>append</code>ed the elements in the <code>insert</code> method, rather than in the <code>enter</code> selection, like <a href="http://d3js.org/#enter-exit">we&#39;re used to seeing in standard D3 code</a>:</p>
+<div class="highlight"><pre><code class="js language-js" data-lang="js"><span class="nx">d3</span><span class="p">.</span><span class="nx">select</span><span class="p">(</span><span class="s2">&quot;body&quot;</span><span class="p">).</span><span class="nx">selectAll</span><span class="p">(</span><span class="s2">&quot;p&quot;</span><span class="p">)</span>
+    <span class="p">.</span><span class="nx">data</span><span class="p">([</span><span class="mi">4</span><span class="p">,</span> <span class="mi">8</span><span class="p">,</span> <span class="mi">15</span><span class="p">,</span> <span class="mi">16</span><span class="p">,</span> <span class="mi">23</span><span class="p">,</span> <span class="mi">42</span><span class="p">])</span>
+  <span class="p">.</span><span class="nx">enter</span><span class="p">().</span><span class="nx">append</span><span class="p">(</span><span class="s2">&quot;p&quot;</span><span class="p">)</span>
+    <span class="p">.</span><span class="nx">text</span><span class="p">(</span><span class="kd">function</span><span class="p">(</span><span class="nx">d</span><span class="p">)</span> <span class="p">{</span> <span class="k">return</span> <span class="s2">&quot;I’m number &quot;</span> <span class="o">+</span> <span class="nx">d</span> <span class="o">+</span> <span class="s2">&quot;!&quot;</span><span class="p">;</span> <span class="p">});</span>
+</code></pre></div>
+<p>The reason we append elements in the <code>insert</code> method and not in the <code>enter</code> selection is for extensibility. d3.chart allows others to add code to our existing charts. One of they ways they can do this is by writing their own handlers to our chart&#39;s <code>enter</code> event. Because of this, we want to ensure that when they write their handler, they are referencing the same D3 selection; in essence, that <code>this</code> refers to the same thing in their code as it does in ours. In D3, when we <code>append</code> elements, we actually change the selection.</p>
+
+<p>Thus, by keeping our <code>append</code> operations in <code>insert</code>, and doing all other data-driven transformations on the <code>enter</code> selection within the events hash, <code>this</code> will always refer to the <code>enter</code> selection, for any developer who works on our chart.</p>
+
+<p>At this point, we have a working bar chart! Let&#39;s give it a spin.</p>
+<div class="highlight"><pre><code class="js language-js" data-lang="js"><span class="kd">var</span> <span class="nx">data</span> <span class="o">=</span> <span class="p">[</span>
+  <span class="p">{</span><span class="nx">name</span><span class="o">:</span> <span class="s1">&#39;A&#39;</span><span class="p">,</span> <span class="nx">value</span><span class="o">:</span> <span class="mi">4</span><span class="p">},</span>
+  <span class="p">{</span><span class="nx">name</span><span class="o">:</span> <span class="s1">&#39;B&#39;</span><span class="p">,</span> <span class="nx">value</span><span class="o">:</span> <span class="o">-</span><span class="mi">36</span><span class="p">},</span>
+  <span class="p">{</span><span class="nx">name</span><span class="o">:</span> <span class="s1">&#39;C&#39;</span><span class="p">,</span> <span class="nx">value</span><span class="o">:</span> <span class="mi">19</span><span class="p">},</span>
+  <span class="p">{</span><span class="nx">name</span><span class="o">:</span> <span class="s1">&#39;D&#39;</span><span class="p">,</span> <span class="nx">value</span><span class="o">:</span> <span class="o">-</span><span class="mi">2</span><span class="p">},</span>
+  <span class="p">{</span><span class="nx">name</span><span class="o">:</span> <span class="s1">&#39;E&#39;</span><span class="p">,</span> <span class="nx">value</span><span class="o">:</span> <span class="mi">6</span><span class="p">},</span>
+<span class="p">];</span>
+
+<span class="kd">var</span> <span class="nx">barChart</span> <span class="o">=</span> <span class="nx">d3</span><span class="p">.</span><span class="nx">select</span><span class="p">(</span><span class="s1">&#39;#bar-chart&#39;</span><span class="p">)</span>
+  <span class="p">.</span><span class="nx">append</span><span class="p">(</span><span class="s1">&#39;svg&#39;</span><span class="p">)</span>
+  <span class="p">.</span><span class="nx">chart</span><span class="p">(</span><span class="s1">&#39;BarChart&#39;</span><span class="p">);</span>
+
+<span class="nx">barChart</span><span class="p">.</span><span class="nx">draw</span><span class="p">(</span><span class="nx">data</span><span class="p">);</span>
+</code></pre></div>
+<div id="bar-chart"></div>
+
+<p>Cool! Inspect the chart to see how the margins and layers work.</p>
+
+<p>Let&#39;s try out our width accessor:</p>
+<div class="highlight"><pre><code class="js language-js" data-lang="js"><span class="kd">var</span> <span class="nx">barChart</span> <span class="o">=</span> <span class="nx">d3</span><span class="p">.</span><span class="nx">select</span><span class="p">(</span><span class="s1">&#39;#wide-bar-chart&#39;</span><span class="p">)</span>
+  <span class="p">.</span><span class="nx">append</span><span class="p">(</span><span class="s1">&#39;svg&#39;</span><span class="p">)</span>
+  <span class="p">.</span><span class="nx">chart</span><span class="p">(</span><span class="s1">&#39;BarChart&#39;</span><span class="p">)</span>
+  <span class="p">.</span><span class="nx">width</span><span class="p">(</span><span class="mi">500</span><span class="p">);</span>
+</code></pre></div>
+<div id="wide-bar-chart"></div>
+
+<h3>Transitions</h3>
+
+<p>Working with transitions is quite easy, because transitions are lifecycle events just like the <code>enter</code> event. You can access a transition event by adding <code>:transition</code> to any of the four standard lifecycle events.</p>
+
+<p>Let&#39;s make our bars grow when they enter. First, we&#39;ll change the <code>enter</code> lifecycle event, because when they are first drawn, the bars should start out on the x-axis with a height of 0:</p>
+<div class="highlight"><pre><code class="diff language-diff" data-lang="diff">  &#39;enter&#39;: function() {
+    var chart = this.chart();
+
+    this.attr(&#39;x&#39;, function(d) { return chart.xScale(d.name); })
+<span class="gd">-     .attr(&#39;y&#39;, function(d) { return chart.yScale(d3.max([0, d.value])); })</span>
+<span class="gi">+     .attr(&#39;y&#39;, function(d) { return chart.yScale(0); })</span>
+      .attr(&#39;fill&#39;, function(d) {return chart.color(d.name);})
+      .attr(&#39;width&#39;, chart.xScale.rangeBand())
+<span class="gd">-     .attr(&#39;height&#39;, function(d) { return Math.abs(chart.yScale(d.value) - chart.yScale(0)); });</span>
+<span class="gi">+     .attr(&#39;height&#39;, 0);</span>
+  },
+</code></pre></div>
+<p>Now, we&#39;ll make them grow in the <code>enter:transition</code> event. We need to animate both the <code>y</code> value and the bar&#39;s <code>height</code>:</p>
+<div class="highlight"><pre><code class="js language-js" data-lang="js">  <span class="s1">&#39;enter:transition&#39;</span><span class="o">:</span> <span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
+    <span class="kd">var</span> <span class="nx">chart</span> <span class="o">=</span> <span class="k">this</span><span class="p">.</span><span class="nx">chart</span><span class="p">();</span>
+
+    <span class="k">this</span><span class="p">.</span><span class="nx">duration</span><span class="p">(</span><span class="nx">chart</span><span class="p">.</span><span class="nx">duration</span><span class="p">)</span>
+      <span class="p">.</span><span class="nx">attr</span><span class="p">(</span><span class="s1">&#39;y&#39;</span><span class="p">,</span> <span class="kd">function</span><span class="p">(</span><span class="nx">d</span><span class="p">)</span> <span class="p">{</span> <span class="k">return</span> <span class="nx">chart</span><span class="p">.</span><span class="nx">yScale</span><span class="p">(</span><span class="nx">d3</span><span class="p">.</span><span class="nx">max</span><span class="p">([</span><span class="mi">0</span><span class="p">,</span> <span class="nx">d</span><span class="p">.</span><span class="nx">value</span><span class="p">]));</span> <span class="p">})</span>
+      <span class="p">.</span><span class="nx">attr</span><span class="p">(</span><span class="s1">&#39;height&#39;</span><span class="p">,</span> <span class="kd">function</span><span class="p">(</span><span class="nx">d</span><span class="p">)</span> <span class="p">{</span> <span class="k">return</span> <span class="nb">Math</span><span class="p">.</span><span class="nx">abs</span><span class="p">(</span><span class="nx">chart</span><span class="p">.</span><span class="nx">yScale</span><span class="p">(</span><span class="nx">d</span><span class="p">.</span><span class="nx">value</span><span class="p">)</span> <span class="o">-</span> <span class="nx">chart</span><span class="p">.</span><span class="nx">yScale</span><span class="p">(</span><span class="mi">0</span><span class="p">));</span> <span class="p">});</span>
+  <span class="p">}</span>
+</code></pre></div>
+<p>All set! Let&#39;s try it out.</p>
+<div class="highlight"><pre><code class="js language-js" data-lang="js"><span class="kd">var</span> <span class="nx">barChart</span> <span class="o">=</span> <span class="nx">d3</span><span class="p">.</span><span class="nx">select</span><span class="p">(</span><span class="s1">&#39;#animated-bar-chart&#39;</span><span class="p">)</span>
+  <span class="p">.</span><span class="nx">append</span><span class="p">(</span><span class="s1">&#39;svg&#39;</span><span class="p">)</span>
+  <span class="p">.</span><span class="nx">chart</span><span class="p">(</span><span class="s1">&#39;BarChart&#39;</span><span class="p">)</span>
+  <span class="p">.</span><span class="nx">width</span><span class="p">(</span><span class="mi">500</span><span class="p">);</span>
+</code></pre></div>
+<p><a id="draw-animated-bar-chart">Click to run</a></p>
+
+<div id="animated-bar-chart"></div>
+
+<h2>Conclusion</h2>
+
+<p>We&#39;ve seen that d3.chart helps us build robust, reusable code. We were able to abstract common traits like widths and margins into our base chart, and extend it into a bar chart that&#39;s wide open for customization. </p>
+
+<p>d3.chart also helps us separate our D3 code into logical chunks - but what&#39;s really cool is how this aspect carries over as we (or even other developers) extend our charts. For example, say we wanted to use the bar chart from this post, but we needed bars with negative values to be colored red. When using charting libraries, you&#39;ll often run into situations like this: you&#39;re able to work the configuration options 95% of the way, but you always seem to fall one option short of getting the exact chart you need.</p>
+
+<p>Fortunately, with d3.chart, this isn&#39;t an issue - just add the code yourself:</p>
+<div class="highlight"><pre><code class="js language-js" data-lang="js"><span class="nx">d3</span><span class="p">.</span><span class="nx">chart</span><span class="p">(</span><span class="s1">&#39;AnimatedBarChart&#39;</span><span class="p">).</span><span class="nx">extend</span><span class="p">(</span><span class="s1">&#39;ProfitLossBarChart&#39;</span><span class="p">,</span> <span class="p">{</span>
+
+  <span class="nx">initialize</span><span class="o">:</span> <span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
+
+    <span class="k">this</span><span class="p">.</span><span class="nx">layer</span><span class="p">(</span><span class="s1">&#39;bars&#39;</span><span class="p">).</span><span class="nx">on</span><span class="p">(</span><span class="s1">&#39;enter&#39;</span><span class="p">,</span> <span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
+      <span class="k">this</span><span class="p">.</span><span class="nx">style</span><span class="p">(</span><span class="s1">&#39;fill&#39;</span><span class="p">,</span> <span class="kd">function</span><span class="p">(</span><span class="nx">d</span><span class="p">,</span> <span class="nx">i</span><span class="p">)</span> <span class="p">{</span><span class="k">return</span> <span class="nx">d</span><span class="p">.</span><span class="nx">value</span> <span class="o">&lt;</span> <span class="mi">0</span> <span class="o">?</span> <span class="s1">&#39;red&#39;</span> <span class="o">:</span> <span class="s1">&#39;blue&#39;</span><span class="p">;});</span>
+    <span class="p">});</span>
+
+  <span class="p">}</span> 
+
+<span class="p">});</span>
+</code></pre></div>
+<div id="profit-loss-bar-chart"></div>
+
+<p>Suffice it to say, d3.chart provides a very good solution to the perennial problem of chart configuration. I encourage you to try it out, and remember to <a href="http://misoproject.com/d3-chart/charts.html">show off your work on d3.chart&#39;s website</a>!</p>
+
+<script src="/js/d3.v3.min.js"></script>
+
+<script src="/js/d3.chart.js"></script>
+
+<script src="/attachments/starting-out-with-d3-chart/BaseChart.js"></script>
+
+<script src="/attachments/starting-out-with-d3-chart/BarChart.js"></script>
+
+<script src="/attachments/starting-out-with-d3-chart/AnimatedBarChart.js"></script>
+
+<script src="/attachments/starting-out-with-d3-chart/ProfitLossBarChart.js"></script>
+
+<script>
+
+var data = [
+  {name: 'A', value: 4},
+  {name: 'B', value: -36},
+  {name: 'C', value: 19},
+  {name: 'D', value: -2},
+  {name: 'E', value: 6},
+];
+
+// Standard bar chart
+var barChart = d3.select("#bar-chart")
+  .append("svg")
+  .chart("BarChart");
+
+barChart.draw(data);
+
+// Wide bar chart
+var wideBarChart = d3.select("#wide-bar-chart")
+  .append("svg")
+  .chart("BarChart")
+  .width(500);
+
+wideBarChart.draw(data);
+
+// Animated bar chart
+function drawAnimatedBarChart() {
+  var animatedBarChart = d3.select("#animated-bar-chart")
+    .html('')
+    .append("svg")
+    .chart("AnimatedBarChart")
+    .draw(data);
+}
+
+d3.select('#draw-animated-bar-chart').on('click', drawAnimatedBarChart);
+
+// Profit and loss bar chart
+var profitLossBarChart = d3.select("#profit-loss-bar-chart")
+  .append("svg")
+  .chart("ProfitLossBarChart");
+
+profitLossBarChart.draw(data);
+
+
+</script>
+
+    </article>
+
+    <div class="comments">
+      <div id="disqus_thread"></div>
+      <script type="text/javascript">
+        /* * * CONFIGURATION VARIABLES: EDIT BEFORE PASTING INTO YOUR WEBPAGE * * */
+        var disqus_shortname = 'samselikoff'; // required: replace example with your forum shortname
+
+        /* * * DON'T EDIT BELOW THIS LINE * * */
+        (function() {
+            var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+            dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+            (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+        })();
+      </script>
+      <noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+      <a href="http://disqus.com" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
+    </div>
+    
+  </div>
+
+<!-- 
+  <footer>
+    <p class="copyright muted">&copy; 2013 Sam Selikoff</p>
+  </footer>
+ -->
+</div>
+
+  </body>
+</html>
