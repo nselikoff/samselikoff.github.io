@@ -97,31 +97,76 @@
     <article>
       <header class="page-header">
         <p class="thin subtitle">Latest blog post:</p>
-        <h1 class="title"><a href="/blog/2014/04/26/epilogue-for-ember-at-openvisconf">An Epilogue for Ember</a></h3>
-        <!-- <p class="byline">April 26, 2014 &#183; </p> -->
-        <p class="byline">April 26, 2014</p>
+        <h1 class="title"><a href="/blog/2014/05/16/getting-ember-components-to-respond-to-actions">Getting Ember components to respond to actions</a></h3>
+        <!-- <p class="byline">May 16, 2014 &#183; ember and til</p> -->
+        <p class="byline">May 16, 2014</p>
       </header>
       <section>
-        <p>Friends of OpenVis Conf - I did an injustice to you. I presented but a cursory overview to one of the most complex, exciting and powerful JavaScript frameworks of our time: Ember.js.</p>
+        <p>I&#39;m building a map application in Ember, and I need one of my components to invoke a method in another component. The UI is similar to Google Maps, with an overlay panel showing details about the selected pin:</p>
 
-<p>Fear not! For I have remedied this with a <strong>52-minute talk</strong> just for you, chock-full of Ember and D3 goodness. (Okay, it&#39;s also for any other people out there who may be interested. But it&#39;s mainly for you.)</p>
+<p><img src="/images/posts/2014-05/map.png" alt="Map"></p>
 
-<p>Please let me know if you have any questions. It was an absolute pleasure to meet you all, and I hope to see you next year.</p>
+<p>The router looks something like this:</p>
+<div class="highlight"><pre><code class="js language-js" data-lang="js"><span class="nx">App</span><span class="p">.</span><span class="nx">Router</span><span class="p">.</span><span class="nx">map</span><span class="p">(</span><span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
 
-<p>Links:</p>
+  <span class="k">this</span><span class="p">.</span><span class="nx">resource</span><span class="p">(</span><span class="s1">&#39;pins&#39;</span><span class="p">,</span> <span class="p">{</span> <span class="nx">path</span><span class="o">:</span> <span class="s1">&#39;/&#39;</span> <span class="p">},</span> <span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
+    <span class="k">this</span><span class="p">.</span><span class="nx">resource</span><span class="p">(</span><span class="s1">&#39;pin&#39;</span><span class="p">,</span> <span class="p">{</span> <span class="nx">path</span><span class="o">:</span> <span class="s1">&#39;/:pin_id&#39;</span> <span class="p">});</span>
+  <span class="p">});</span>
 
-<ul>
-<li><a href="/tutorials/d3-backbone-angular-ember">Live demo</a></li>
-<li><a href="https://github.com/samselikoff/talks/tree/master/4-apr2014-using-d3-backbone-angular-ember">Code</a> (or view source on the demos)</li>
-</ul>
+<span class="p">});</span>
+</code></pre></div>
+<p>and when the user selects a pin, the overlay panel appears. The map making up the main screen is a <code>FullscreenMapComponent</code>, and the portion corresponding to &quot;Street View&quot; in the Google snapshot is a <code>StreetViewComponent</code>.</p>
 
-<iframe width="480" height="360" src="//www.youtube.com/embed/rvPwv40O9LE" frameborder="0" allowfullscreen></iframe>
+<p><strong>The problem</strong></p>
+
+<p>When the user clicks &quot;Street View&quot;, we want the main map to pan and zoom to the selected pin. How can we accomplish this? The <code>StreetViewComponent</code> is in the <code>PinController</code>, and the map is a completely seprate component in a different controller.</p>
+
+<p>Using data-binding we could introduce a dummy property, have the street view component change that property, and have the fullscreen component respond to changes on that property; but this feels hackish, and the dummy variable wouldn&#39;t really represent anything meaningful in our application.</p>
+
+<p>What we really want is for our <code>StreetViewComponent</code> to send out an action called, say, <code>focusSelectedPin</code>, and then have our <code>FullscreenMapComponent</code> respond to that action and invoke the appropriate method. However, if we send out an action from our street view, whichever controller or route that handles the action won&#39;t have a reference to the <code>FullscreenMapComponent</code>, so it won&#39;t be able to invoke any of the component&#39;s methods.</p>
+
+<p><strong>The solution</strong></p>
+
+<p>We can solve this problem by having our fullscreen component register a reference to itself upon initialization.</p>
+
+<p>First, add a <code>_register</code> method to the component that executes on init:</p>
+<div class="highlight"><pre><code class="js language-js" data-lang="js"><span class="nx">App</span><span class="p">.</span><span class="nx">FullscreenMapComponent</span> <span class="o">=</span> <span class="nx">Ember</span><span class="p">.</span><span class="nx">Component</span><span class="p">.</span><span class="nx">extend</span><span class="p">({</span>
+
+  <span class="p">...</span>
+
+  <span class="nx">_register</span><span class="o">:</span> <span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
+    <span class="k">this</span><span class="p">.</span><span class="nx">set</span><span class="p">(</span><span class="s1">&#39;register-as&#39;</span><span class="p">,</span> <span class="k">this</span><span class="p">);</span> <span class="c1">// register-as is a new property</span>
+  <span class="p">}.</span><span class="nx">on</span><span class="p">(</span><span class="s1">&#39;init&#39;</span><span class="p">)</span>
+
+<span class="p">});</span>
+</code></pre></div>
+<p>Then, when rendering the component, supply a property to bind <code>register-as</code> to:</p>
+<div class="highlight"><pre><code class="js language-js" data-lang="js"><span class="c1">// templates/pins.hbs</span>
+
+<span class="p">{{</span><span class="nx">fullscreen</span><span class="o">-</span><span class="nx">map</span> <span class="nx">data</span><span class="o">=</span><span class="nx">mapData</span> <span class="nx">register</span><span class="o">-</span><span class="nx">as</span><span class="o">=</span><span class="nx">fullscreenMap</span> <span class="p">}}</span>
+</code></pre></div>
+<p>Now, our controller has a reference to the component, and can call methods directly on it. For example, if clicking our street view component sends out a <code>focusSelectedPin</code> action, we could handle it like this:</p>
+<div class="highlight"><pre><code class="js language-js" data-lang="js"><span class="nx">App</span><span class="p">.</span><span class="nx">PinsRoute</span> <span class="o">=</span> <span class="nx">Em</span><span class="p">.</span><span class="nx">Route</span><span class="p">.</span><span class="nx">extend</span><span class="p">({</span>
+
+  <span class="p">...</span>
+
+  <span class="nx">actions</span><span class="o">:</span> <span class="p">{</span>
+    <span class="nx">focusSelectedPin</span><span class="o">:</span> <span class="kd">function</span><span class="p">()</span> <span class="p">{</span>
+      <span class="k">this</span><span class="p">.</span><span class="nx">controller</span><span class="p">.</span><span class="nx">get</span><span class="p">(</span><span class="s1">&#39;fullscreenMap&#39;</span><span class="p">).</span><span class="nx">panToSelectedPin</span><span class="p">();</span>
+    <span class="p">}</span>
+  <span class="p">}</span>
+
+<span class="p">});</span>
+</code></pre></div>
+<p>Presto! Now our components can respond to actions.</p>
+
+<p><em>Thanks to <a href="http://www.twitter.com/ebryn">@ebryn</a> for this solution.</em></p>
 
       </section>
 
       <hr>
 
-      <a href="/blog/2014/04/26/epilogue-for-ember-at-openvisconf/#disqus_thread">Comments</a>
+      <a href="/blog/2014/05/16/getting-ember-components-to-respond-to-actions/#disqus_thread">Comments</a>
   </article>
   
 
