@@ -1,13 +1,13 @@
 {
   "indicators": [
-    {"key": "wbc", "label": "White Blood Cells", "threshold": 4.1, "sign": "+"},
-    {"key": "rbc", "label": "Red Blood Cells", "threshold": 3.9, "sign": "+"},
-    {"key": "plateletCount", "label": "Platelet Count", "threshold": 100, "sign": "+"},
-    {"key": "neutAbs", "label": "Neut Abs", "threshold": 1.5, "sign": "+"},
-    {"key": "creatininePlasma", "label": "Creatinine/Plasma", "threshold": 1.5, "sign": "-"},
-    {"key": "potassium", "label": "Potassium", "threshold": 4.5, "sign": "-"},
-    {"key": "bilirubin", "label": "Bilirubin", "threshold": 1.5, "sign": "-"},
-    {"key": "protein", "label": "Protein", "threshold": 6.6, "sign": "+"}
+    {"key": "wbc", "label": "White Blood Cells", "thresholdHigh": 10.5, "thresholdLow": 4.1},
+    {"key": "rbc", "label": "Red Blood Cells", "thresholdHigh": 3.9},
+    {"key": "plateletCount", "label": "Platelet Count", "thresholdHigh": 100},
+    {"key": "neutAbs", "label": "Neut Abs", "thresholdHigh": 1.5},
+    {"key": "creatininePlasma", "label": "Creatinine/Plasma", "thresholdHigh": 1.5},
+    {"key": "potassium", "label": "Potassium", "thresholdLow": 4.5},
+    {"key": "bilirubin", "label": "Bilirubin", "thresholdHigh": 1.5},
+    {"key": "protein", "label": "Protein", "thresholdHigh": 6.6}
   ],
 
   "data": [
